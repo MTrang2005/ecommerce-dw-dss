@@ -1,0 +1,257 @@
+\section{THIẾT KẾ KHO DỮ LIỆU}
+
+\subsection{Kiến trúc tổng thể}
+\hspace{1cm}
+Kiến trúc luồng dữ liệu được tổ chức theo mô hình kinh điển của Kimball: dữ liệu thô được
+nạp vào vùng \textit{staging}, sau đó biến đổi và nạp vào kho dữ liệu (DW) theo mô hình
+\textit{star schema}, từ đó cung cấp cho hai nhóm tiêu thụ: (1) các \textit{OLAP view} phục
+vụ truy vấn báo cáo trực tiếp, và (2) tầng đặc trưng (\textit{feature store}) phục vụ các mô
+hình DSS (bảng \texttt{FACT\_ORDER\_FULFILLMENT}). Hình~\ref{fig:kientruc} minh họa toàn bộ luồng này.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    box/.style={draw, rounded corners, minimum width=2.6cm, minimum height=1cm,
+                align=center, font=\small, fill=blue!6},
+    dwbox/.style={box, fill=blue!15},
+    dssbox/.style={box, fill=green!15},
+    lbl/.style={font=\scriptsize, align=center},
+    arr/.style={-{Stealth[length=2.2mm]}, thick}
+]
+\node[box, minimum width=2.8cm] (raw) at (1.3,0) {Dữ liệu nguồn\\(Olist + file campaign)};
+\node[box] (staging) at (5.9,0) {Staging\\(PostgreSQL)};
+\node[dwbox] (dw) at (10.1,0) {Data Warehouse\\(Star Schema)};
+\node[box, minimum width=3cm] (olap) at (14.2,1.1) {OLAP Views\\(Materialized)};
+\node[dssbox, minimum width=3cm] (dss) at (14.2,-1.1) {DSS Service\\(Model, :8001)};
+\node[box, minimum width=3cm] (backend) at (14.2,-3.3) {Backend API\\(BFF, :8000)};
+\node[dwbox, minimum width=4.2cm] (fe) at (7.6,-3.3) {Frontend (React, :5173)\\Manager Dashboard · Ops Console\\Campaign · Risk Predictor};
+
+\draw[arr] (raw) -- node[above, lbl]{Extract} (staging);
+\draw[arr] (staging) -- node[above, lbl]{Transform\\+ Load} (dw);
+\draw[arr] (dw.east) -- (olap.west);
+\draw[arr] (dw.east) -- (dss.west);
+\draw[arr] (olap.east) -- ++(0.5,0) |- (backend.east);
+\draw[arr] (dss) -- (backend);
+\draw[arr] (backend) -- node[above, lbl]{REST / JSON} (fe);
+\node[lbl, text=black!60] at (5.9,-1.1) {Điều phối bởi Airflow:\\staging\_load $\to$ dw\_load $\to$ dss\_batch};
+\end{tikzpicture}
+\caption{Kiến trúc tổng thể: Raw data $\to$ Staging $\to$ DW $\to$ OLAP/DSS $\to$ Backend API $\to$ Frontend}
+\label{fig:kientruc}
+\end{figure}
+
+Toàn bộ pipeline ETL được điều phối bởi \textbf{Apache Airflow} thông qua ba DAG:
+\texttt{staging\_load}, \texttt{dw\_load} và \texttt{dss\_batch}, chạy tuần tự
+theo thứ tự (Mục~3.4).
+
+\subsection{Mô hình đa chiều (Star Schema)}
+\hspace{1cm}
+Kho dữ liệu được thiết kế theo mô hình \textbf{star schema} (dạng \textit{fact constellation}),
+gồm hai bảng \textit{fact} dùng chung sáu bảng \textit{dimension}, phù hợp với đặc thù các câu
+hỏi phân tích đã xác định ở Mục 2.3. Hình~\ref{fig:starschema} minh họa lược đồ (đường màu cam:
+khóa ngoại của \texttt{FACT\_ORDER\_FULFILLMENT}; \texttt{DIM\_DATE} đóng vai trò
+\textit{role-playing} cho 5 mốc ngày của đơn).
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    fact/.style={draw, thick, rounded corners=1pt, fill=blue!12, minimum width=4.6cm,
+                 align=center, font=\small\bfseries},
+    dim/.style={draw, rounded corners=1pt, fill=green!10, minimum width=3.2cm,
+                minimum height=1.1cm, align=center, font=\small},
+    link/.style={-, thick, gray}
+]
+\node[fact] (foi) at (-6.6,2.3) {FACT\_ORDER\_ITEM\\[3pt]
+\footnotesize\normalfont grain: 1 sản phẩm trong 1 đơn\\
+\footnotesize\normalfont quantity, price, freight\_value,\\
+\footnotesize\normalfont total\_value, delivery\_days,\\
+\footnotesize\normalfont is\_late\_delivery, review\_score};
+
+\node[fact, fill=orange!15] (fof) at (-6.6,-2.6) {FACT\_ORDER\_FULFILLMENT\\[3pt]
+\footnotesize\normalfont grain: 1 đơn (accumulating snapshot)\\
+\footnotesize\normalfont 5 mốc ngày: mua, duyệt, bàn giao VC,\\
+\footnotesize\normalfont giao tới khách, hẹn giao\\
+\footnotesize\normalfont distance\_km, estimated\_days, carrier\_days,\\
+\footnotesize\normalfont delay\_days, is\_late, review\_score,\\
+\footnotesize\normalfont is\_low\_review (nhãn cho DSS)};
+
+\node[dim] (payment)  at (0, 2.8)  {DIM\_PAYMENT\_TYPE};
+\node[dim] (seller)   at (0, 1.4)  {DIM\_SELLER};
+\node[dim] (location) at (0, 0)    {DIM\_LOCATION\\\footnotesize(state, region)};
+\node[dim] (date)     at (0, -1.4) {DIM\_DATE};
+\node[dim] (customer) at (0, -2.8) {DIM\_CUSTOMER\\\footnotesize(SCD2 địa chỉ)};
+\node[dim] (product)  at (0, -4.2) {DIM\_PRODUCT\\\footnotesize(category)};
+
+\foreach \d in {payment, seller, location, date, customer, product}
+    \draw[link] (foi.east) -- (\d.west);
+\foreach \d in {payment, seller, location, date, customer, product}
+    \draw[link, orange!70!black] (fof.east) -- (\d.west);
+\end{tikzpicture}}
+\caption{Lược đồ hình sao (star schema) của kho dữ liệu}
+\label{fig:starschema}
+\end{figure}
+
+\subsubsection{Bảng Fact}
+\begin{itemize}
+    \item \textbf{FACT\_ORDER\_ITEM} -- mức chi tiết (grain): một dòng ứng với một sản phẩm
+          trong một đơn hàng (tương ứng một dòng \texttt{olist\_order\_items}). Khóa ngoại đến
+          \texttt{date\_sk}, \texttt{customer\_sk}, \texttt{product\_sk}, \texttt{seller\_sk},
+          \texttt{location\_sk}, \texttt{payment\_type\_sk}; chiều suy
+          biến (degenerate) \texttt{order\_id}, \texttt{order\_status}; các độ đo (measures):
+          \texttt{quantity}, \texttt{price}, \texttt{freight\_value}, \texttt{total\_value}
+          (= \texttt{price} + \texttt{freight\_value}), \texttt{delivery\_days},
+          \texttt{is\_late\_delivery}, \texttt{review\_score}.
+    \item \textbf{FACT\_ORDER\_FULFILLMENT} -- mức chi tiết: một dòng ứng với một \textbf{đơn hàng},
+          thiết kế dạng \textit{accumulating snapshot}: mỗi mốc trong vòng đời đơn (mua, duyệt,
+          bàn giao cho đơn vị vận chuyển, giao tới khách, ngày hẹn giao) là một khóa ngoại tới
+          \texttt{DIM\_DATE}; dòng được \textbf{cập nhật} khi đơn đi tới mốc tiếp theo. Độ đo
+          cấp đơn: \texttt{n\_items}, \texttt{total\_price}, \texttt{total\_freight},
+          \texttt{total\_weight\_g}, \texttt{payment\_installments}, \texttt{distance\_km}
+          (khoảng cách người bán -- khách tính từ tọa độ zip), \texttt{estimated\_days},
+          \texttt{carrier\_days}, \texttt{actual\_days}, \texttt{delay\_days}, cùng hai nhãn
+          \texttt{is\_late} và \texttt{is\_low\_review} (review $\leq$ 2 sao). Đây là nguồn dữ
+          liệu của hai mô hình DSS (Mục~5).
+\end{itemize}
+
+\subsubsection{Bảng Dimension}
+\begin{table}[H]
+\centering
+\caption{Danh sách bảng chiều (dimension) và chiến lược SCD}
+\begin{tabular}{@{}p{3.2cm}p{2cm}p{8.5cm}@{}}
+\toprule
+\textbf{Bảng} & \textbf{SCD} & \textbf{Ghi chú} \\
+\midrule
+\texttt{DIM\_CUSTOMER} & Type 2 & Khóa nghiệp vụ \texttt{customer\_unique\_id}. Lưu lịch sử
+thay đổi \textbf{địa chỉ} (zip, thành phố, bang) qua các cột \texttt{effective\_from},
+\texttt{effective\_to} (kiểu \texttt{TIMESTAMP}) và \texttt{is\_current}; 252 khách có hơn
+một phiên bản. \\
+\texttt{DIM\_PRODUCT} & Type 1 & Mã sản phẩm và ngành hàng (đã dịch sang tiếng Anh); ghi đè
+khi thay đổi. \\
+\texttt{DIM\_DATE} & Static & Sinh sẵn cho các năm có dữ liệu, gồm ngày, thứ trong tuần, tháng,
+năm. \\
+\texttt{REF\_ZIP\_GEO} & Tham chiếu & Tọa độ trung bình của 19.010 zip prefix (từ
+\texttt{olist\_geolocation}, đã bỏ điểm nằm ngoài Brazil), dùng tính \texttt{distance\_km}. \\
+\texttt{DIM\_LOCATION} & Type 1 & Thành phố, bang, vùng địa lý (nơi giao hàng). \\
+\texttt{DIM\_SELLER} & Type 1 & Người bán: mã, bang. \\
+\texttt{DIM\_PAYMENT\_\allowbreak TYPE} & Type 1 & Phương thức thanh toán chính của đơn (credit card,
+boleto, voucher, debit card). Dùng thay cho chiều ``kênh bán'' vì Olist không có thông tin
+kênh. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Các bảng chiều chỉ giữ những thuộc tính đang được OLAP view, API hoặc mô hình DSS truy vấn,
+cùng các khóa tự nhiên cần cho ETL; các thuộc tính đã lược bỏ và hướng bổ sung lại được trình
+bày ở Mục~\ref{sec:dw-gaps}.
+
+Việc chọn \textbf{SCD Type 2} cho \texttt{DIM\_CUSTOMER} xuất phát từ đặc điểm dữ liệu Olist:
+địa chỉ giao hàng được ghi theo từng đơn, và một số khách chuyển nơi nhận hàng giữa các lần
+mua. Với SCD Type 1, các đơn cũ sẽ bị gán sang địa chỉ mới, làm sai thống kê theo khu vực
+(ví dụ tỷ lệ giao trễ theo bang). Với SCD Type 2, bảng fact được nối theo thời điểm mua
+(\textit{point-in-time join}: \texttt{effective\_from} $\leq$ thời điểm mua $<$
+\texttt{effective\_to}) nên mỗi đơn luôn trỏ tới đúng phiên bản địa chỉ tại thời điểm đặt hàng.
+Mốc hiệu lực được lưu ở mức \textbf{thời điểm} chứ không phải ngày: trong dữ liệu có 14 khách
+đặt hai đơn tới hai địa chỉ khác nhau trong cùng một ngày; khi mốc chỉ tính theo ngày, 12 đơn bị
+nối sai phiên bản (5 đơn sai cả bang). Lỗi này được phát hiện khi đối soát fact với dimension và
+đã được sửa, kèm một kiểm tra tự động (Mục~3.5).
+
+\subsubsection{Bảng vận hành cho chiến dịch chăm sóc}
+Hai bảng \texttt{dw.care\_campaign} và \texttt{dw.campaign\_target} không thuộc star schema.
+Dimension mô tả ngữ cảnh của các sự kiện trong fact và kho dữ liệu chỉ được cập nhật qua ETL
+(tính \textit{non-volatile}), còn hai bảng này do người dùng thay đổi trực tiếp trên giao diện
+và không có fact nào tham chiếu, nên được xem là bảng \textit{write-back} phục vụ vận hành:
+\begin{itemize}
+    \item \texttt{care\_campaign}: mã, tên, mô tả chiến dịch. Dữ liệu ban đầu lấy từ file
+          \texttt{data/campaigns/care\_campaigns.csv}. ETL chỉ thêm các mã mới, không ghi đè tên
+          hoặc mô tả đã sửa trên giao diện. Thao tác xóa là \textit{xóa mềm}
+          (\texttt{deleted\_at}) để chạy lại ETL không làm chiến dịch đã xóa xuất hiện trở lại.
+    \item \texttt{campaign\_target}: khách hàng đã gắn vào từng chiến dịch, kèm đơn và điểm rủi
+          ro dẫn tới việc chọn khách; mỗi khách (theo \texttt{customer\_id}, không theo từng phiên bản SCD2)
+          xuất hiện tối đa một lần trong một chiến dịch.
+\end{itemize}
+
+\subsection{OLAP Views}
+\hspace{1cm}
+Để tránh việc tính toán lại các phép tổng hợp phức tạp mỗi lần truy vấn dashboard, ba
+\textit{materialized view} được xây dựng trực tiếp trên kho dữ liệu:
+
+\begin{table}[H]
+\centering
+\caption{OLAP views phục vụ báo cáo và DSS}
+\begin{tabular}{@{}p{5.6cm}>{\raggedright\arraybackslash}p{8.4cm}@{}}
+\toprule
+\textbf{View} & \textbf{Mục đích} \\
+\midrule
+\texttt{mv\_revenue\_by\_\allowbreak month\_category} & Rollup doanh thu theo tháng và ngành hàng --
+trả lời câu hỏi nghiệp vụ (1). \\
+\texttt{mv\_top\_products} & Xếp hạng sản phẩm bán chạy/chậm theo doanh thu -- trả lời câu
+hỏi nghiệp vụ (2). \\
+\texttt{mv\_delivery\_performance} & Đơn đã giao theo tháng mua $\times$ bang người bán
+$\times$ vùng/bang khách: số đơn, số đơn trễ, tổng số ngày giao/ngày hẹn, tổng điểm review,
+số review thấp (lưu tổng thay vì trung bình để rollup đúng) -- trả lời câu hỏi nghiệp vụ (3). \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Quy trình ETL}
+\hspace{1cm}
+Quy trình ETL được cài đặt bằng Python và điều phối bởi Airflow, gồm ba giai đoạn tương ứng
+ba module trong \texttt{etl/}:
+
+\begin{enumerate}
+    \item \textbf{Extract} (\texttt{etl/extract/extract\_olist.py}): đọc 9 file CSV Olist (gồm cả \texttt{olist\_geolocation}, $\sim$1 triệu dòng)
+          (Kaggle) và file \texttt{care\_campaigns.csv}, chỉ chọn các cột cần dùng, \texttt{TRUNCATE} rồi
+          \texttt{COPY} vào schema \texttt{staging} của PostgreSQL (full reload, chạy lại không
+          nhân đôi dữ liệu).
+    \item \textbf{Transform} (\texttt{etl/transform/transform\_dw.py}): xây dựng các bảng
+          dimension bằng SQL set-based (\texttt{INSERT ... ON CONFLICT}): sinh
+          \texttt{DIM\_DATE}, gom tọa độ theo zip vào \texttt{REF\_ZIP\_GEO}, dịch tên ngành hàng
+          sang tiếng Anh, ánh xạ bang sang vùng địa lý, gom khách hàng theo
+          \texttt{customer\_unique\_id} và áp dụng SCD Type 2 theo địa chỉ cho
+          \texttt{DIM\_CUSTOMER}.
+    \item \textbf{Load} (\texttt{etl/load/load\_dw.py}): nạp hai bảng fact, tra khóa đại diện
+          (với \texttt{DIM\_CUSTOMER} lấy phiên bản có hiệu lực tại ngày mua), tính các độ đo
+          dẫn xuất (\texttt{total\_value}, \texttt{delivery\_days}, \texttt{is\_late\_delivery},
+          điểm review trung bình của đơn; với \texttt{FACT\_ORDER\_FULFILLMENT} thêm khoảng cách
+          haversine, các khoảng thời gian giữa các mốc và nhãn trễ/review thấp). Cả hai fact đều
+          dùng \texttt{ON CONFLICT DO UPDATE} nên khi chạy lại, trạng thái đơn, ngày giao, nhãn
+          trễ và điểm review được cập nhật theo vòng đời đơn thay vì giữ giá trị cũ; sau đó \texttt{REFRESH MATERIALIZED VIEW} cho các
+          OLAP view liên quan.
+\end{enumerate}
+
+Ba Airflow DAG (thư mục \texttt{etl/dags/}) nối tiếp nhau bằng
+\texttt{TriggerDagRunOperator}:
+\begin{itemize}
+    \item \texttt{staging\_load}: chạy Extract, nạp dữ liệu thô vào staging. Chạy thủ công
+          (\texttt{schedule=None}) vì Olist là dataset lịch sử tĩnh.
+    \item \texttt{dw\_load}: chạy Transform + Load, cập nhật kho dữ liệu và OLAP view,
+          kích hoạt sau khi \texttt{staging\_load} hoàn tất.
+    \item \texttt{dss\_batch}: huấn luyện lại / chạy suy luận theo lô (batch inference)
+          cho ba mô hình DSS, kích hoạt sau khi \texttt{dw\_load} hoàn tất (và chạy định kỳ
+          \texttt{@weekly}).
+\end{itemize}
+
+\subsection{Kiểm tra chất lượng dữ liệu}
+\hspace{1cm}
+Trước khi dữ liệu từ staging được nạp vào kho, các kiểm tra chất lượng sau được thực hiện
+(cài đặt tại \texttt{etl/tests/test\_data\_quality.py}):
+\begin{itemize}
+    \item Kiểm tra giá trị NULL trên các khóa nghiệp vụ bắt buộc (\texttt{order\_id},
+          \texttt{customer\_id}, \texttt{product\_id}, ...) và không trùng
+          (\texttt{order\_id}, \texttt{order\_item\_id}).
+    \item Kiểm tra ràng buộc toàn vẹn tham chiếu (referential integrity): mọi dòng
+          \texttt{order\_items} trỏ tới đơn hàng hợp lệ, mọi đơn trỏ tới khách hàng hợp lệ;
+          toàn bộ \texttt{order\_items} đều được nạp vào fact và có đủ
+          \texttt{location\_sk}, \texttt{payment\_type\_sk}.
+    \item Kiểm tra miền giá trị hợp lệ: \texttt{price} $\geq$ 0, \texttt{review\_score}
+          trong khoảng 1--5.
+    \item Kiểm tra SCD2: mỗi khách hàng có đúng một phiên bản hiện hành, các phiên bản không
+          chồng lấn, \texttt{DIM\_CUSTOMER} dùng \texttt{customer\_unique\_id} làm khóa
+          nghiệp vụ, và mỗi dòng fact trỏ tới phiên bản có đúng địa chỉ giao của đơn.
+    \item Kiểm tra \texttt{FACT\_ORDER\_FULFILLMENT}: đủ một dòng cho mỗi đơn có sản phẩm, nhãn
+          \texttt{is\_late}/\texttt{is\_low\_review} khớp với \texttt{delay\_days}/\texttt{review\_score},
+          mọi đơn đều có \texttt{distance\_km} (16 kiểm tra, tất cả đạt).
+\end{itemize}
+Bộ kiểm tra viết bằng \texttt{pytest}, chạy ở bước cuối của \texttt{scripts/seed\_db.sh}
+(\texttt{pytest etl/tests}); nếu có kiểm tra thất bại, script dừng lại để nhóm xử lý trước
+khi đưa dữ liệu vào phân tích.

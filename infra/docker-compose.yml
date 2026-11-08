@@ -1,0 +1,98 @@
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.9.3-python3.11
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    DW_DB_HOST: db
+    DW_DB_PORT: "5432"
+    DW_DB_NAME: ${POSTGRES_DB}
+    DW_DB_USER: ${POSTGRES_USER}
+    DW_DB_PASSWORD: ${POSTGRES_PASSWORD}
+    PYTHONPATH: /opt/airflow            # để DAG import được package `etl`
+    DATA_DIR: /opt/airflow/data
+    WAREHOUSE_DIR: /opt/airflow/warehouse
+  volumes:
+    - ../etl/dags:/opt/airflow/dags
+    - ../etl:/opt/airflow/etl
+    - ../warehouse:/opt/airflow/warehouse
+    - ../data:/opt/airflow/data:ro      # Olist CSV (data/raw) + campaign (data/campaigns)
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5433:5432"   # host 5433 -> postgres 5432 trong container
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../warehouse/ddl:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  airflow-init:
+    <<: *airflow-common
+    command: bash -c "airflow db init && airflow users create --username airflow --password airflow --firstname Air --lastname Flow --role Admin --email airflow@example.com"
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  dss:
+    build: ../dss
+    restart: unless-stopped
+    environment:
+      DW_DB_HOST: db
+      DW_DB_PORT: "5432"
+      DW_DB_NAME: ${POSTGRES_DB}
+      DW_DB_USER: ${POSTGRES_USER}
+      DW_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      # Hạn bàn giao mặc định của sàn (số ngày sau khi mua) cho công cụ dự đoán; trống -> trung vị dữ liệu (~6 ngày)
+      DEFAULT_SHIPPING_LIMIT_DAYS: ${DEFAULT_SHIPPING_LIMIT_DAYS:-}
+    ports:
+      - "8001:8001"
+    volumes:
+      - ../dss/models:/app/models         # giữ model đã train giữa các lần restart
+    depends_on:
+      - db
+
+  backend-api:
+    build: ../backend-api
+    restart: unless-stopped
+    environment:
+      DW_DB_HOST: db
+      DW_DB_PORT: "5432"
+      DW_DB_NAME: ${POSTGRES_DB}
+      DW_DB_USER: ${POSTGRES_USER}
+      DW_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DSS_BASE_URL: http://dss:8001
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - dss
+
+volumes:
+  pgdata:

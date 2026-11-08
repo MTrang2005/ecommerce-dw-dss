@@ -1,0 +1,23 @@
+\section{KẾT LUẬN}
+
+\subsection{Kết luận chung}
+\hspace{1cm}
+Đồ án đã xây dựng hoàn chỉnh một hệ thống kho dữ liệu và hỗ trợ quyết định cho sàn thương mại
+điện tử Olist: kho dữ liệu dạng star schema với hai bảng fact (trong đó
+\texttt{FACT\_ORDER\_FULFILLMENT} là \textit{accumulating snapshot} theo vòng đời đơn hàng),
+sáu dimension (\texttt{DIM\_CUSTOMER} dùng SCD Type 2 theo địa chỉ), pipeline ETL idempotent
+được điều phối bởi Airflow và kiểm tra bằng 16 bài kiểm tra chất lượng dữ liệu, ba OLAP view
+phục vụ dashboard. Trên nền kho dữ liệu, hai mô hình DSS dự đoán rủi ro giao trễ (ROC-AUC
+0,868, PR-AUC 0,519) và rủi ro nhận đánh giá thấp (ROC-AUC 0,703, PR-AUC 0,323) đều vượt
+baseline Logistic Regression, được đánh giá trung thực trên giai đoạn sau giai đoạn huấn luyện,
+và được đưa vào quy trình ra quyết định qua ngưỡng theo chi phí, phân tích what-if, chiến
+dịch chăm sóc khách hàng trên Ops Console và công cụ dự đoán rủi ro cho một đơn do người dùng tự
+nhập (tuyến, ngành hàng, các mốc ngày).
+
+\subsection{Đề xuất hướng phát triển}
+\begin{itemize}
+    \item Chấm điểm rủi ro nhiều lần trong vòng đời đơn và giám sát drift để tự huấn luyện lại.
+    \item Bổ sung dữ liệu vận chuyển (hãng, tuyến, sự kiện) và nội dung đánh giá để cải thiện mô
+          hình đánh giá thấp.
+    \item Kiểm chứng chi phí và hiệu quả chiến dịch chăm sóc bằng thử nghiệm A/B.
+\end{itemize}

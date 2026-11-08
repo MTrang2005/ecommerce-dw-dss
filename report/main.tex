@@ -1,0 +1,185 @@
+\documentclass[12pt]{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[utf8]{vietnam}
+\usepackage[]{amsthm} %lets us use \begin{proof}
+\usepackage[]{amssymb} %gives us the character \varnothing
+\usepackage[section]{placeins}
+\usepackage{fancybox}
+\usepackage{indentfirst}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{subcaption} % For subfigure environment
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{color}
+\usepackage{extsizes}
+\usepackage{tcolorbox}
+\usepackage{setspace}
+\usepackage{caption}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{tabularx}
+\usepackage{ragged2e}
+\usepackage{enumitem}
+\usepackage{bm}
+\usepackage{comment}
+\usepackage{booktabs}
+\usepackage{xltabular}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows.meta,positioning,fit,backgrounds,calc}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=blue,
+}
+
+\renewcommand{\normalsize}{\fontsize{13}{15}\selectfont}
+\geometry{left = 2cm, right = 2cm}
+\lstset{
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!50!black},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    frame=single,
+    breaklines=true,
+    captionpos=b,
+    tabsize=2
+}
+
+\setstretch{1.2}
+% Cho phép giãn khoảng trắng ở dòng có tên file/lệnh (\texttt) dài, tránh chữ tràn lề
+\setlength{\emergencystretch}{3em}
+
+\begin{document}
+\justifying
+\newgeometry{left=2cm,right=2cm,top=2cm,bottom=2cm}
+\thispagestyle{empty}
+
+\begin{center}
+    \textbf{\Large ĐẠI HỌC QUỐC GIA THÀNH PHỐ HỒ CHÍ MINH}\\
+    \textbf{\Large TRƯỜNG ĐẠI HỌC BÁCH KHOA}\\
+    \textbf{\large KHOA KHOA HỌC VÀ KỸ THUẬT MÁY TÍNH}\\[1cm]
+
+    % Logo BK
+    \includegraphics[width=0.35\textwidth]{logoBK.png}\\[1cm]
+
+    \textbf{\Large BÁO CÁO BÀI TẬP LỚN}\\[0.2cm]
+    \textbf{\Large KHO DỮ LIỆU VÀ HỆ HỖ TRỢ QUYẾT ĐỊNH}\\[0.4cm]
+    \rule{0.8\textwidth}{0.4pt}\\[0.6cm]
+
+    \textbf{\Huge XÂY DỰNG KHO DỮ LIỆU VÀ}\\[0.2cm]
+    \textbf{\Huge HỆ HỖ TRỢ QUYẾT ĐỊNH CHO}\\[0.2cm]
+    \textbf{\Huge THƯƠNG MẠI ĐIỆN TỬ}\\[0.6cm]
+
+    \rule{0.8\textwidth}{0.4pt}
+\end{center}
+
+\vspace{1cm}
+
+\begin{flushleft}
+\hspace{3cm}
+\begin{tabular}{l l}
+    \textbf{Giảng viên hướng dẫn:} & TS. Đỗ Thanh Thái \\
+    % \textbf{Nhóm:} & Nhóm \_\_\_ \\
+    \textbf{Sinh viên:} & Phan Ngọc Quỳnh Trang - 2313518 \\
+    \textbf{} & Nguyễn Thanh Hùng - 2411324 \\
+    \textbf{} & Quách Văn Hà - 2410858 \\
+\end{tabular}
+\end{flushleft}
+
+\vfill
+\vspace{0.3cm}
+
+\begin{center}
+    {\footnotesize TP. HỒ CHÍ MINH, THÁNG 11/2026}
+\end{center}
+
+\thispagestyle{empty}
+\newpage
+\tableofcontents
+\thispagestyle{empty}
+\clearpage
+\fancyhf{}
+\pagestyle{fancy}
+\fancyhead{}
+
+\renewcommand{\footruleskip}{1mm}
+
+\fancyhead[L]{
+ \begin{tabular}{rl}
+    \begin{picture}(25,15)(0,0)
+    \put(0,-8){\includegraphics[width=15mm, height=15mm]{logoBK.png}}
+   \end{picture}&
+	\begin{tabular}{l}
+		\textbf{  Trường Đại Học Bách Khoa - Đại học Quốc gia TP.HCM }\\
+		\textbf{  Khoa Khoa Học \& Kỹ Thuật Máy Tính}
+	\end{tabular}
+ \end{tabular}
+}
+\fancyhead[R]{
+	\begin{tabular}{l}
+		\tiny \bf \\
+		\tiny \bf
+	\end{tabular}
+}
+\fancyfoot[R]{\thepage}
+\fancyfoot[L]{\textbf{Kho dữ liệu \& Hệ hỗ trợ Quyết định (CO4031)}}
+\renewcommand{\footrulewidth}{1pt}
+\setlength{\headheight}{32pt}
+\setlength{\headsep}{1.5cm}
+\setlength{\footskip}{1cm}
+
+\newpage
+\setcounter{page}{1}
+\input{contents/Tong_quan}
+
+\newpage
+\input{contents/Yeu_cau_nghiep_vu}
+
+\newpage
+\input{contents/Thiet_ke_du_lieu}
+
+\newpage
+\input{contents/Hien_thuc_he_thong}
+
+\newpage
+\input{contents/He_ho_tro_quyet_dinh}
+
+\newpage
+\input{contents/Danh_gia_ket_qua}
+
+\newpage
+\input{Ket_luan}
+
+\newpage
+\section{Tài liệu tham khảo}
+\begin{enumerate}
+    \item W. H. Inmon, \textit{Building the Data Warehouse}, 4th ed. Wiley, 2005.
+    \item R. Kimball, M. Ross, \textit{The Data Warehouse Toolkit}, 3rd ed. Wiley, 2013.
+    \item E. Turban, J. E. Aronson, T.-P. Liang, \textit{Decision Support Systems and
+    Intelligent Systems}, 7th ed. Prentice-Hall, 2005.
+    \item R. Elmasri, S. B. Navathe, \textit{Fundamentals of Database Systems}, 7th ed.
+    Addison-Wesley, 2016.
+    \item R. Sharda, D. Delen, E. Turban, \textit{Analytics, Data Science, \& Artificial
+    Intelligence: Systems for Decision Support}, 7th ed. Pearson, 2020.
+    \item J. Han, M. Kamber, J. Pei, \textit{Data Mining: Concepts and Techniques}, 3rd ed.
+    Morgan Kaufmann, 2012.
+    \item F. Burstein, C. W. Holsapple, \textit{Handbook on Decision Support Systems}.
+    Springer, 2008.
+    \item Trần Minh Quang et al., \textit{Cơ sở dữ liệu: khái niệm, phương pháp, và kỹ thuật
+    phân tích thiết kế}. NXB ĐHQG-HCM, 2025.
+    \item \href{https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce}
+    {Kaggle -- Brazilian E-Commerce Public Dataset by Olist}
+    \item F. Pedregosa et al., ``Scikit-learn: Machine Learning in Python'', \textit{Journal of
+    Machine Learning Research}, vol. 12, pp. 2825--2830, 2011.
+    \item C. Elkan, ``The Foundations of Cost-Sensitive Learning'', in \textit{Proc. IJCAI},
+    2001, pp. 973--978.
+\end{enumerate}
+
+\end{document}

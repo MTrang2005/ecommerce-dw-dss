@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Data
+data/raw/*
+!data/raw/.gitkeep
+
+# Models
+dss/models/*.pkl
+!dss/models/.gitkeep
+
+# Env
+.env
+infra/.env
+*.env.local
+
+# OS
+.DS_Store
+
+# LaTeX (file tạm khi biên dịch report/)
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc
+report/*.fls
+report/*.fdb_latexmk
+report/*.synctex.gz
+
+# File log rỗng do dbml2sql sinh ra
+dbml-error.log
+
+docs/*
+!docs/dw_star_schema.dbml.
+Assignment_requirement.pdf
+
+
+check.md
