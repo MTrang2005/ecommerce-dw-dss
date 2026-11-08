@@ -1,0 +1,331 @@
+// Kho dữ liệu (schema dw) — dán vào https://dbdiagram.io để vẽ.
+// Nguồn: warehouse/ddl/02_dw_dimensions.sql, warehouse/ddl/03_dw_facts.sql (khớp từng cột với DB).
+// - Star schema: 2 bảng fact + 6 dimension. Dimension chỉ giữ thuộc tính đang được truy vấn (báo cáo Mục 6.6).
+// - Ngoài star schema: bảng tham chiếu (ref_*), bảng output của DSS, bảng vận hành campaign — mỗi loại 1 TableGroup,
+//   trên dbdiagram có thể ẩn các nhóm này để chỉ xem sơ đồ hình sao.
+
+Project ecommerce_dw {
+  database_type: 'PostgreSQL'
+  Note: 'Kho dữ liệu Olist — giao hàng đúng hạn và mức độ hài lòng của khách'
+}
+
+// ===================== FACT =====================
+
+Table dw.fact_order_item [headercolor: #2563EB] {
+  order_item_sk bigserial [pk]
+  order_id text [not null, note: 'degenerate dimension']
+  order_item_id int [not null]
+  order_status text [not null, note: 'degenerate dimension']
+  date_sk int [not null, note: 'ngày mua']
+  customer_sk int [not null]
+  product_sk int [not null]
+  seller_sk int
+  location_sk int
+  payment_type_sk int
+  quantity int [not null, default: 1]
+  price numeric(12,2) [not null, note: 'doanh thu sản phẩm (BRL)']
+  freight_value numeric(12,2) [not null, default: 0]
+  total_value numeric(14,2) [not null, note: 'price + freight_value']
+  delivery_days numeric(6,2) [note: 'NULL nếu chưa giao']
+  is_late_delivery boolean [note: 'giao sau ngày dự kiến']
+  review_score numeric(3,2) [note: 'điểm review trung bình của đơn']
+
+  indexes {
+    (order_id, order_item_id) [unique]
+    date_sk [name: 'idx_foi_date']
+    customer_sk [name: 'idx_foi_customer']
+    product_sk [name: 'idx_foi_product']
+    location_sk [name: 'idx_foi_location']
+  }
+
+  Note: 'Grain: 1 dòng = 1 sản phẩm trong 1 đơn hàng (= 1 dòng olist_order_items). Transaction fact.'
+}
+
+Table dw.fact_order_fulfillment [headercolor: #EA580C] {
+  order_id text [pk, note: 'degenerate dimension']
+  order_status text [not null]
+  customer_sk int [not null]
+  location_sk int
+  seller_sk int [note: 'người bán của item đầu tiên']
+  product_sk int [note: 'sản phẩm của item đầu tiên']
+  payment_type_sk int
+
+  // các mốc thời gian (role-playing dim_date)
+  purchase_date_sk int [not null]
+  approved_date_sk int
+  carrier_date_sk int
+  delivered_date_sk int
+  estimated_date_sk int
+  purchase_ts timestamp [not null]
+  approved_ts timestamp
+  carrier_ts timestamp
+  delivered_ts timestamp
+  estimated_date date
+
+  // độ đo của đơn
+  n_items int [not null]
+  n_sellers int [not null]
+  total_price numeric(12,2) [not null]
+  total_freight numeric(12,2) [not null]
+  total_weight_g int
+  total_volume_cm3 bigint
+  payment_installments int
+  distance_km numeric(8,1) [note: 'người bán -> khách (haversine theo zip prefix)']
+  same_state boolean
+
+  // độ đo thời gian (tính từ lúc mua)
+  estimated_days int [note: 'ngày hẹn giao - ngày mua']
+  shipping_limit_days numeric(6,2) [note: 'hạn người bán phải bàn giao']
+  approval_hours numeric(8,2)
+  carrier_days numeric(6,2) [note: 'NULL nếu chưa bàn giao vận chuyển']
+  actual_days numeric(6,2) [note: 'NULL nếu chưa giao tới khách']
+  delay_days int [note: 'ngày giao thực tế - ngày hẹn (> 0 = trễ)']
+
+  // nhãn cho 2 mô hình DSS
+  is_late boolean [note: 'nhãn mô hình rủi ro giao trễ']
+  review_score numeric(3,2)
+  is_low_review boolean [note: 'review_score <= 2 — nhãn mô hình rủi ro review thấp']
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    purchase_date_sk [name: 'idx_fof_purchase']
+    seller_sk [name: 'idx_fof_seller']
+  }
+
+  Note: '''
+  Grain: 1 dòng = 1 đơn hàng. Accumulating snapshot: mỗi mốc của vòng đời đơn
+  (mua -> duyệt -> bàn giao vận chuyển -> giao tới khách) là 1 cột ngày; dòng được cập nhật
+  khi đơn đi tới mốc tiếp theo. Nguồn dữ liệu cho 2 mô hình DSS.
+  '''
+}
+
+// ===================== DIMENSION =====================
+
+Table dw.dim_date [headercolor: #16A34A] {
+  date_sk int [pk, note: 'YYYYMMDD']
+  full_date date [not null, unique, note: 'khoá tự nhiên']
+  day_of_week int [not null, note: '1 = Thứ 2 ... 7 = Chủ nhật (ISO)']
+  month int [not null]
+  year int [not null]
+
+  Note: 'Static. Role-playing: fact_order_fulfillment tham chiếu 5 lần (mua, duyệt, bàn giao, giao, hẹn giao).'
+}
+
+Table dw.dim_customer [headercolor: #16A34A] {
+  customer_sk serial [pk]
+  customer_id text [not null, note: '= customer_unique_id của Olist']
+  zip_code_prefix text
+  city text
+  state char(2)
+  effective_from timestamp [not null, note: 'thời điểm mua đơn đầu tiên ở địa chỉ này; version đầu = 1900-01-01']
+  effective_to timestamp [note: 'NULL = còn hiệu lực']
+  is_current boolean [not null, default: true]
+
+  indexes {
+    (customer_id, is_current) [name: 'idx_dim_customer_bk']
+    (customer_id, effective_from) [unique, name: 'uq_dim_customer_version']
+  }
+
+  Note: '''
+  SCD Type 2 theo địa chỉ (zip, city, state): khách chuyển nhà -> thêm version mới.
+  Fact join theo thời điểm mua (effective_from <= ts < effective_to) để lấy đúng địa chỉ tại thời điểm đó.
+  Thêm unique index một phần: customer_id WHERE is_current (mỗi khách 1 version hiện hành).
+  '''
+}
+
+Table dw.dim_product [headercolor: #16A34A] {
+  product_sk serial [pk]
+  product_id text [not null, unique]
+  category text [not null, note: 'tiếng Anh (đã dịch), unknown nếu thiếu']
+
+  Note: 'SCD Type 1'
+}
+
+Table dw.dim_location [headercolor: #16A34A] {
+  location_sk serial [pk]
+  city text [not null]
+  state char(2) [not null]
+  region text [note: 'Norte | Nordeste | Centro-Oeste | Sudeste | Sul']
+
+  indexes {
+    (city, state) [unique]
+  }
+
+  Note: 'Địa điểm của khách hàng (nơi giao hàng). SCD Type 1.'
+}
+
+Table dw.dim_seller [headercolor: #16A34A] {
+  seller_sk serial [pk]
+  seller_id text [not null, unique]
+  state char(2)
+
+  Note: 'SCD Type 1'
+}
+
+Table dw.dim_payment_type [headercolor: #16A34A] {
+  payment_type_sk serial [pk]
+  payment_type text [not null, unique, note: 'credit_card | boleto | voucher | debit_card | not_defined']
+
+  Note: 'Phương thức thanh toán chính của đơn (Olist không có thông tin kênh bán).'
+}
+
+// ===================== THAM CHIẾU (dùng trong ETL) =====================
+
+Table dw.ref_br_state [headercolor: #6B7280] {
+  state_code char(2) [pk]
+  state_name text [not null]
+  region text [not null, note: 'Norte | Nordeste | Centro-Oeste | Sudeste | Sul']
+
+  Note: 'Bang (UF) của Brazil -> vùng. Dữ liệu tĩnh trong DDL; ETL lấy region cho dim_location.'
+}
+
+Table dw.ref_zip_geo [headercolor: #6B7280] {
+  zip_code_prefix text [pk]
+  state char(2)
+  lat double [not null]
+  lng double [not null]
+
+  Note: 'Toạ độ trung bình mỗi zip prefix (olist_geolocation, bỏ điểm ngoài Brazil) -> tính distance_km của fact_order_fulfillment.'
+}
+
+// ===================== OUTPUT CỦA DSS (ghi lại mỗi lần retrain) =====================
+
+Table dw.order_risk_score [headercolor: #7C3AED] {
+  order_id text [not null]
+  model_name text [not null, note: 'late_delivery | low_review']
+  model_version text [not null]
+  risk_score numeric(6,4) [not null, note: 'xác suất dự đoán']
+  risk_level text [not null, note: 'High | Medium | Low']
+  scope text [not null, note: 'holdout (kiểm định, có actual_label) | open (đang vận chuyển)']
+  actual_label boolean
+  scored_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (order_id, model_name) [pk]
+    (model_name, risk_score) [name: 'idx_ors_model_score']
+  }
+}
+
+Table dw.model_metrics [headercolor: #7C3AED] {
+  model_name text [not null]
+  model_version text [not null, note: 'hgb_v1 (chính) | logreg_v1 (baseline)']
+  is_primary boolean [not null]
+  train_start date [not null]
+  train_end date [not null]
+  test_start date [not null]
+  test_end date [not null]
+  n_train int [not null]
+  n_test int [not null]
+  positive_rate numeric(6,4)
+  roc_auc numeric(6,4)
+  pr_auc numeric(6,4)
+  threshold numeric(6,4) [note: 'ngưỡng High theo chi phí: C_FP / (C_FP + C_FN)']
+  precision numeric(6,4)
+  recall numeric(6,4)
+  f1 numeric(6,4)
+  threshold_valid numeric(6,4) [note: 'so sánh: ngưỡng max-F1 chọn trên validation']
+  f1_valid_threshold numeric(6,4)
+  precision_top10 numeric(6,4)
+  recall_top10 numeric(6,4)
+  trained_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (model_name, model_version) [pk]
+  }
+}
+
+Table dw.model_feature_importance [headercolor: #7C3AED] {
+  model_name text [not null]
+  model_version text [not null]
+  feature text [not null]
+  importance numeric(10,6) [not null, note: 'permutation importance (giảm PR-AUC)']
+
+  indexes {
+    (model_name, model_version, feature) [pk]
+  }
+}
+
+// ===================== VẬN HÀNH: CAMPAIGN CHĂM SÓC =====================
+
+Table dw.care_campaign [headercolor: #0891B2] {
+  campaign_sk serial [pk]
+  campaign_code text [not null, unique]
+  campaign_name text [not null]
+  description text
+  created_at timestamp [not null, default: `now()`]
+  deleted_at timestamp [note: 'xoá mềm']
+
+  Note: 'Ops thêm/sửa/xoá trên tab Campaign; không phải dimension (không fact nào tham chiếu). Tên là duy nhất trong các campaign chưa xoá.'
+}
+
+Table dw.campaign_target [headercolor: #0891B2] {
+  campaign_sk int [not null]
+  customer_sk int [not null]
+  order_id text [not null, note: 'đơn có rủi ro review thấp dẫn tới việc chọn khách']
+  risk_score numeric(6,4)
+  assigned_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (campaign_sk, customer_sk) [pk]
+  }
+}
+
+// ===================== QUAN HỆ =====================
+
+// fact_order_item
+Ref: dw.fact_order_item.date_sk > dw.dim_date.date_sk
+Ref: dw.fact_order_item.customer_sk > dw.dim_customer.customer_sk
+Ref: dw.fact_order_item.product_sk > dw.dim_product.product_sk
+Ref: dw.fact_order_item.seller_sk > dw.dim_seller.seller_sk
+Ref: dw.fact_order_item.location_sk > dw.dim_location.location_sk
+Ref: dw.fact_order_item.payment_type_sk > dw.dim_payment_type.payment_type_sk
+
+// fact_order_fulfillment
+Ref: dw.fact_order_fulfillment.customer_sk > dw.dim_customer.customer_sk
+Ref: dw.fact_order_fulfillment.product_sk > dw.dim_product.product_sk
+Ref: dw.fact_order_fulfillment.seller_sk > dw.dim_seller.seller_sk
+Ref: dw.fact_order_fulfillment.location_sk > dw.dim_location.location_sk
+Ref: dw.fact_order_fulfillment.payment_type_sk > dw.dim_payment_type.payment_type_sk
+// role-playing dim_date
+Ref: dw.fact_order_fulfillment.purchase_date_sk > dw.dim_date.date_sk
+Ref: dw.fact_order_fulfillment.approved_date_sk > dw.dim_date.date_sk
+Ref: dw.fact_order_fulfillment.carrier_date_sk > dw.dim_date.date_sk
+Ref: dw.fact_order_fulfillment.delivered_date_sk > dw.dim_date.date_sk
+Ref: dw.fact_order_fulfillment.estimated_date_sk > dw.dim_date.date_sk
+
+// ngoài star schema
+Ref: dw.order_risk_score.order_id > dw.fact_order_fulfillment.order_id
+Ref: dw.campaign_target.campaign_sk > dw.care_campaign.campaign_sk
+Ref: dw.campaign_target.customer_sk > dw.dim_customer.customer_sk
+
+// ===================== NHÓM =====================
+
+TableGroup facts [color: #EA580C] {
+  dw.fact_order_item
+  dw.fact_order_fulfillment
+}
+
+TableGroup dimensions [color: #16A34A] {
+  dw.dim_date
+  dw.dim_customer
+  dw.dim_product
+  dw.dim_location
+  dw.dim_seller
+  dw.dim_payment_type
+}
+
+TableGroup reference [color: #6B7280] {
+  dw.ref_br_state
+  dw.ref_zip_geo
+}
+
+TableGroup dss_output [color: #7C3AED] {
+  dw.order_risk_score
+  dw.model_metrics
+  dw.model_feature_importance
+}
+
+TableGroup campaign_ops [color: #0891B2] {
+  dw.care_campaign
+  dw.campaign_target
+}
