@@ -40,7 +40,6 @@ dbml-error.log
 
 docs/*
 !docs/dw_star_schema.dbml
-!docs/dw_star_schema.dbml.
 Assignment_requirement.pdf
 
 
