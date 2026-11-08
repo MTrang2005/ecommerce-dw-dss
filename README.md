@@ -165,10 +165,6 @@ rồi `docker compose --env-file .env.local up -d dss`. Trên form vẫn sửa �
   `curl -X POST localhost:8001/risk/retrain` (~50 giây).
 - **Sửa code `dss/`**: build lại `docker compose --env-file .env.local up -d --build dss`.
 
-## Trạng thái
-
-Xem `check.md` để biết tiến độ chi tiết.
-
 ## Tuỳ chỉnh danh sách campaign
 
 Danh sách ban đầu nằm ở `data/campaigns/care_campaigns.csv` (cột `campaign_code`, `campaign_name`, `description`).
