@@ -6,8 +6,7 @@ Toàn bộ pipeline chạy được bằng Airflow trong Docker và bằng scrip
 được (chạy ETL lần hai không phát sinh thêm dòng nào). Quy mô dữ liệu đã nạp:
 \begin{itemize}
     \item \textbf{Staging}: 99.441 đơn, 112.650 dòng sản phẩm, 103.886 dòng thanh toán, 99.224
-          đánh giá, 32.951 sản phẩm, 3.095 người bán, 1.000.163 điểm tọa độ; file cấu hình gồm
-          3 chiến dịch chăm sóc mẫu.
+          đánh giá, 32.951 sản phẩm, 3.095 người bán, 1.000.163 điểm tọa độ.
     \item \textbf{Dimension}: 96.096 khách hàng với 96.355 phiên bản SCD2 (252 khách đổi địa
           chỉ), 32.951 sản phẩm, 4.310 địa điểm, 3.095 người bán, 5 phương thức thanh toán,
           1.096 ngày; bảng tham chiếu 19.010 zip prefix có tọa độ.
@@ -142,7 +141,7 @@ Low & 17.737 & 1,9\% & 14.801 & 6,5\% \\
     \item \textbf{Chấm điểm sớm hơn (ngay lúc đặt hàng)}: chỉ dùng các đặc trưng có lúc đặt
           hàng thì mô hình giao trễ đạt ROC-AUC 0,693, PR-AUC 0,073 (gần mức ngẫu nhiên); mô hình
           đánh giá thấp đạt ROC-AUC 0,620, PR-AUC 0,186. Điều này giải thích lựa chọn thời điểm
-          chấm điểm ở Mục~5.2.
+          chấm điểm ở Mục~\ref{sec:dss-timing}.
     \item \textbf{Chọn ngưỡng tối đa F1 trên validation}: với mô hình giao trễ, ngưỡng chọn được
           chỉ là 0,07 vì validation (03--05/2018) có tỷ lệ trễ cao bất thường (19\% ở 03/2018),
           áp sang tập kiểm định (3,6\%) cho F1 chỉ 0,207, so với 0,534 khi dùng ngưỡng theo chi
@@ -216,7 +215,9 @@ vì chúng là khung của star schema và chi phí lưu trữ thấp:
 và bốn vai trò ngày \texttt{approved\_date\_sk}, \texttt{carrier\_date\_sk},
 \texttt{delivered\_date\_sk}, \texttt{estimated\_date\_sk} trong
 \texttt{FACT\_ORDER\_FULFILLMENT} (thống kê theo tháng giao hàng hoặc tháng bàn giao thay vì
-tháng mua). Định hướng mở rộng:
+tháng mua). Tương tự, ba độ đo \texttt{total\_value}, \texttt{delivery\_days},
+\texttt{is\_late\_delivery} của \texttt{FACT\_ORDER\_ITEM} vẫn được ETL tính nhưng chưa được
+truy vấn, vì phân tích giao hàng dùng \texttt{FACT\_ORDER\_FULFILLMENT}. Định hướng mở rộng:
 \begin{itemize}
     \item Bổ sung lại các thuộc tính trong Bảng~\ref{tab:dropped-attrs} khi có câu hỏi nghiệp vụ
           cụ thể, kèm OLAP view và bộ lọc tương ứng trên Manager Dashboard (ví dụ bộ lọc quý,

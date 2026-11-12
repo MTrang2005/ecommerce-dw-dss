@@ -10,10 +10,10 @@ cd "$(dirname "$0")/.."
 echo "==> [1/5] Tạo schema staging + dw (idempotent)"
 python -m etl.init_db
 
-echo "==> [2/5] Load CSV Olist + campaign vào staging"
+echo "==> [2/5] Load CSV Olist vào staging"
 python -m etl.extract.extract_olist
 
-echo "==> [3/5] Transform: Dim_Date, Zip geo, Location, Seller, Payment, Care Campaign, Product, Customer (SCD2 địa chỉ)"
+echo "==> [3/5] Transform: Dim_Date, Zip geo, Location, Seller, Payment, Product, Customer (SCD2 địa chỉ)"
 python -m etl.transform.transform_dw
 
 echo "==> [4/5] Load Fact tables + tạo/refresh OLAP views"

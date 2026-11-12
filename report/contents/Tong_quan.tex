@@ -1,6 +1,6 @@
 \section{TỔNG QUAN ĐỀ TÀI}
 
-\subsection{Bối cảnh và động lực}
+\subsection{Bối cảnh}
 \hspace{1cm}
 Trong lĩnh vực thương mại điện tử (TMĐT), dữ liệu giao dịch, hành vi duyệt web và tương
 tác khách hàng được sinh ra liên tục với khối lượng lớn từ nhiều kênh bán hàng khác nhau.
@@ -13,55 +13,57 @@ kinh doanh đưa ra quyết định dựa trên dữ liệu (data-driven decisio
 
 \subsection{Mục tiêu}
 \begin{enumerate}
-    \item Phân tích yêu cầu nghiệp vụ và xác định các câu hỏi phân tích cần kho dữ liệu trả lời.
+    \item Phân tích yêu cầu và xác định các câu hỏi phân tích cần kho dữ liệu trả lời.
     \item Thiết kế kho dữ liệu theo mô hình đa chiều (\textit{star schema}), bao gồm quy trình
           trích xuất -- biến đổi -- nạp dữ liệu (ETL).
     \item Hiện thực một hệ thống hoàn chỉnh: tầng lưu trữ (staging + DW), tầng dịch vụ
-          backend (OLAP query, API phục vụ mô hình DSS) và tầng giao diện (dashboard).
-    \item Phát triển hai thành phần DSS trên nền kho dữ liệu: dự đoán rủi ro giao hàng trễ hạn
-          và dự đoán rủi ro khách hàng đánh giá thấp, kèm phân tích what-if cho đơn giao trễ.
+          backend (OLAP query, API phục vụ mô hình DSS) và tầng giao diện.
+    \item Phát triển hai thành phần DSS trên nền kho dữ liệu: 
+      \begin{itemize}
+      \item Dự đoán rủi ro giao hàng trễ hạn, kèm phân tích khả năng chính xác khi tạo thông báo dời thời gian cho đơn giao trễ.
+      \item Dự đoán rủi ro khách hàng đánh giá thấp.
+      \end{itemize}
     \item Đánh giá kết quả đạt được, chỉ ra hạn chế và đề xuất hướng phát triển tiếp theo.
 \end{enumerate}
 
 \subsection{Đề tài và phạm vi}
 \hspace{1cm}
-Nhóm lựa chọn lĩnh vực \textbf{Thương mại điện tử} (giao thoa với \textbf{Logistics}), với bài
-toán trọng tâm: xây dựng kho dữ liệu tích hợp dữ liệu đơn hàng, khách hàng, người bán, sản
+Xây dựng kho dữ liệu tích hợp dữ liệu đơn hàng, khách hàng, người bán, sản
 phẩm, thanh toán, đánh giá và vị trí địa lý của sàn Olist (Brazil), phục vụ ba nhóm bài toán
 ra quyết định:
 \begin{itemize}
     \item \textbf{Phân tích doanh số và hiệu suất giao hàng} theo thời gian, ngành hàng, khu
           vực và tuyến vận chuyển (phục vụ Manager Dashboard).
-    \item \textbf{Dự đoán rủi ro giao hàng trễ hạn}: chấm điểm đơn ngay khi người bán bàn giao
-          cho đơn vị vận chuyển, để bộ phận vận hành can thiệp trước khi đơn bị trễ.
-    \item \textbf{Dự đoán rủi ro nhận đánh giá thấp} (review $\leq$ 2 sao): chấm điểm đơn vừa
-          giao tới khách, để bộ phận chăm sóc khách hàng chủ động liên hệ / tặng voucher trước
-          khi khách viết đánh giá.
+    \item \textbf{Dự đoán rủi ro giao hàng trễ hạn}: đánh giá tỷ lệ trễ đơn ngay khi người bán bàn giao
+          cho đơn vị vận chuyển, để bộ phận vận hành can thiệp trước khi đơn bị đánh dấu trễ.
+    \item \textbf{Dự đoán rủi ro nhận đánh giá thấp} (review $\leq$ 2 sao): đánh giá khả năng đơn nhận đánh giá xấu ngay khi đơn được
+          giao tới khách. Đối với nhóm đơn có rủi ro cao, bộ phận chăm sóc khách hàng có thể chủ động xử lý sớm bằng các chiến dịch chăm sóc/hỗ trợ 
+          cho các nhóm này theo danh sách có thể điều chỉnh dựa trên tỷ lệ đã tính trước đó.
 \end{itemize}
 Hai bài toán DSS được chọn vì nhãn có sẵn trong dữ liệu thật (ngày giao thực tế so với ngày
 hẹn, điểm review) và liên quan chặt chẽ với nhau: đơn giao trễ bị đánh giá $\leq$ 2 sao với tỷ
 lệ 60,9\%, trong khi đơn giao đúng hẹn chỉ 9,2\%.
 Phạm vi đồ án tập trung vào phần thiết kế -- hiện thực kỹ thuật (kho dữ liệu, ETL, mô hình
 DSS, dashboard); dữ liệu nguồn là bộ dữ liệu mở (Kaggle), được nêu rõ ràng trong Mục~2.4;
-danh sách chiến dịch chăm sóc là dữ liệu cấu hình do nhóm soạn, không tham gia phân tích. Hai mô hình DSS chỉ sử dụng dữ liệu thật.
+danh sách chiến dịch chăm sóc do Ops tự tạo trên giao diện, không đi qua ETL và không tham gia phân tích. Hai mô hình DSS chỉ sử dụng dữ liệu thật.
 
-\subsection{Đối chiếu chuẩn đầu ra học phần}
-\hspace{1cm}
-Bảng~\ref{tab:cdr} trình bày sự đối chiếu giữa các chuẩn đầu ra (Learning Outcomes) của học
-phần CO4031 theo đề cương DCMH.CO4031.6.1 và các phần tương ứng trong báo cáo này.
+% \subsection{Đối chiếu chuẩn đầu ra học phần}
+% \hspace{1cm}
+% Bảng~\ref{tab:cdr} trình bày sự đối chiếu giữa các chuẩn đầu ra (Learning Outcomes) của học
+% phần CO4031 theo đề cương DCMH.CO4031.6.1 và các phần tương ứng trong báo cáo này.
 
-\begin{table}[H]
-\centering
-\caption{Đối chiếu chuẩn đầu ra học phần với nội dung báo cáo}
-\label{tab:cdr}
-\begin{tabular}{@{}p{2cm}p{7cm}p{4.5cm}@{}}
-\toprule
-\textbf{CĐR} & \textbf{Mô tả} & \textbf{Mục tương ứng} \\
-\midrule
-L.O.1.1--1.3 & Khái niệm, vai trò, ví dụ thực tế về DW và DSS & Mục 1, Mục 5.1 \\
-L.O.2.1--2.3 & Quy trình, nguyên lý thiết kế và hiện thực DW & Mục 3, Mục 4 \\
-L.O.3.1--3.3 & Khái niệm MSS/DSS, các giai đoạn ra quyết định, mô hình hóa & Mục 5.1 \\
-L.O.4.1--4.2 & Nguyên tắc phân tích, thiết kế và hiện thực DSS đơn giản & Mục 5 \\
-\bottomrule
-\end{tabular}
-\end{table}
+% \begin{table}[H]
+% \centering
+% \caption{Đối chiếu chuẩn đầu ra học phần với nội dung báo cáo}
+% \label{tab:cdr}
+% \begin{tabular}{@{}p{2cm}p{7cm}p{4.5cm}@{}}
+% \toprule
+% \textbf{CĐR} & \textbf{Mô tả} & \textbf{Mục tương ứng} \\
+% \midrule
+% L.O.1.1--1.3 & Khái niệm, vai trò, ví dụ thực tế về DW và DSS & Mục 1, Mục 5.1 \\
+% L.O.2.1--2.3 & Quy trình, nguyên lý thiết kế và hiện thực DW & Mục 3, Mục 4 \\
+% L.O.3.1--3.3 & Khái niệm MSS/DSS, các giai đoạn ra quyết định, mô hình hóa & Mục 5.1 \\
+% L.O.4.1--4.2 & Nguyên tắc phân tích, thiết kế và hiện thực DSS đơn giản & Mục 5 \\
+% \bottomrule
+% \end{tabular}
+% \end{table}

@@ -91,9 +91,10 @@ def load_fact_order_item():
                 delivery_days = EXCLUDED.delivery_days, is_late_delivery = EXCLUDED.is_late_delivery,
                 review_score = EXCLUDED.review_score
             WHERE (dw.fact_order_item.order_status, dw.fact_order_item.customer_sk, dw.fact_order_item.delivery_days,
-                   dw.fact_order_item.review_score)
+                   dw.fact_order_item.is_late_delivery, dw.fact_order_item.review_score)
                   IS DISTINCT FROM
-                  (EXCLUDED.order_status, EXCLUDED.customer_sk, EXCLUDED.delivery_days, EXCLUDED.review_score)
+                  (EXCLUDED.order_status, EXCLUDED.customer_sk, EXCLUDED.delivery_days, EXCLUDED.is_late_delivery,
+                   EXCLUDED.review_score)
         """)
         print(f"Fact_Order_Item: {cur.rowcount} rows inserted/updated")
 
@@ -187,12 +188,12 @@ def load_fact_order_fulfillment():
                 actual_days = EXCLUDED.actual_days, delay_days = EXCLUDED.delay_days, is_late = EXCLUDED.is_late,
                 review_score = EXCLUDED.review_score, is_low_review = EXCLUDED.is_low_review,
                 updated_at = now()
-            WHERE (dw.fact_order_fulfillment.order_status, dw.fact_order_fulfillment.carrier_ts,
-                   dw.fact_order_fulfillment.delivered_ts, dw.fact_order_fulfillment.review_score,
-                   dw.fact_order_fulfillment.customer_sk)
+            WHERE (dw.fact_order_fulfillment.order_status, dw.fact_order_fulfillment.approved_ts,
+                   dw.fact_order_fulfillment.carrier_ts, dw.fact_order_fulfillment.delivered_ts,
+                   dw.fact_order_fulfillment.review_score, dw.fact_order_fulfillment.customer_sk)
                   IS DISTINCT FROM
-                  (EXCLUDED.order_status, EXCLUDED.carrier_ts, EXCLUDED.delivered_ts, EXCLUDED.review_score,
-                   EXCLUDED.customer_sk)
+                  (EXCLUDED.order_status, EXCLUDED.approved_ts, EXCLUDED.carrier_ts, EXCLUDED.delivered_ts,
+                   EXCLUDED.review_score, EXCLUDED.customer_sk)
         """)
         print(f"Fact_Order_Fulfillment: {cur.rowcount} rows inserted/updated")
 

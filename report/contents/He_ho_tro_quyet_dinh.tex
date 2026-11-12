@@ -1,19 +1,17 @@
-\section{HỆ HỖ TRỢ QUYẾT ĐỊNH (DSS)}
+\subsection{Hệ hỗ trợ quyết định (DSS)}\label{sec:dss}
 
-\subsection{Liên hệ lý thuyết MSS/DSS}
 \hspace{1cm}
 Theo Turban et al., một Hệ hỗ trợ Quyết định (DSS) hỗ trợ người ra quyết định trải qua các
 giai đoạn: \textit{Intelligence} (nhận diện vấn đề) $\to$ \textit{Design} (xây dựng mô hình
 và các phương án) $\to$ \textit{Choice} (lựa chọn phương án) $\to$ \textit{Implementation}
-(triển khai). Trong đồ án này:
+(triển khai). Trong bài tập lớn này:
 \begin{itemize}
-    \item Giai đoạn \textbf{Intelligence} được hỗ trợ bởi kho dữ liệu và các OLAP view: Manager
-          Dashboard cho thấy tỷ lệ giao trễ tăng vọt ở một số tháng (03/2018: 19\%), một số
-          tuyến (ví dụ SP $\to$ AL trễ 23,9\%), và đơn trễ trên 7 ngày bị đánh giá thấp tới 79\%.
-    \item Giai đoạn \textbf{Design} được hỗ trợ bởi hai mô hình dự đoán: rủi ro giao trễ và rủi
+    \item Giai đoạn \textit{Intelligence} được hỗ trợ bởi kho dữ liệu và các OLAP view.
+    \item Giai đoạn \textit{Design} được hỗ trợ bởi hai mô hình dự đoán: rủi ro giao trễ và rủi
           ro nhận đánh giá thấp. Mỗi mô hình chấm điểm từng đơn và xếp mức High/Medium/Low; với đơn
-          đang vận chuyển, phân tích \textit{what-if} cho biết rủi ro thay đổi thế nào khi dời ngày hẹn giao.
-    \item Giai đoạn \textbf{Choice} và \textbf{Implementation} thuộc về người dùng Ops: chọn
+          đang vận chuyển, chức năng mô phỏng hành động (\textit{Simulate action}, bản chất là phân tích
+          \textit{what-if}) cho biết rủi ro thay đổi thế nào nếu kéo dài ngày hẹn giao.
+    \item Giai đoạn \textit{Choice} và \textit{Implementation} thuộc về người dùng Ops: chọn
           đơn cần can thiệp (liên hệ người bán, đổi hãng vận chuyển, báo trước khách) và chọn
           ngưỡng rủi ro để gắn khách hàng vào chiến dịch chăm sóc trên Ops Console.
 \end{itemize}
@@ -21,12 +19,11 @@ Hai mô hình là \textit{model-driven DSS} kết hợp \textit{data-driven DSS}
 đã tích hợp trong kho (\texttt{FACT\_ORDER\_FULFILLMENT} cùng các dimension), đầu ra được ghi
 ngược lại vào kho để dashboard và chiến dịch sử dụng.
 
-\subsection{Thời điểm ra quyết định trong vòng đời đơn hàng}
+\subsubsection{Thời điểm ra quyết định trong vòng đời đơn hàng}\label{sec:dss-timing}
 \hspace{1cm}
-Điểm then chốt khi thiết kế là xác định \textbf{lúc nào} mô hình chấm điểm, vì mô hình chỉ được
-dùng thông tin đã biết tại thời điểm đó (tránh rò rỉ dữ liệu tương lai -- \textit{data
-leakage}). Hình~\ref{fig:lifecycle} minh họa hai thời điểm được chọn.
-
+Hình~\ref{fig:lifecycle} minh họa hai thời điểm được chọn
+(tránh rò rỉ dữ liệu tương lai -- \textit{data
+leakage}). 
 \begin{figure}[H]
 \centering
 \resizebox{\textwidth}{!}{%
@@ -63,7 +60,7 @@ leakage}). Hình~\ref{fig:lifecycle} minh họa hai thời điểm được ch�
           đánh giá -- và vẫn còn thời gian để chăm sóc khách.
 \end{itemize}
 
-\subsection{Đặc trưng (features) và nhãn}
+\subsubsection{Đặc trưng (features) và nhãn}
 \hspace{1cm}
 Cả hai mô hình đọc cùng một bảng dữ liệu cấp đơn được tạo từ \texttt{FACT\_ORDER\_\allowbreak FULFILLMENT}
 nối với \texttt{DIM\_LOCATION}, \texttt{DIM\_SELLER}, \texttt{DIM\_PRODUCT},
@@ -93,7 +90,7 @@ Tập dữ liệu & đơn đã giao và đã bàn giao vận chuyển & đơn đ
 \end{tabular}
 \end{table}
 
-\subsection{Thuật toán, huấn luyện và đánh giá}
+\subsubsection{Thuật toán, huấn luyện và đánh giá}
 \hspace{1cm}
 \textbf{Thuật toán}: mô hình chính là \textbf{HistGradientBoostingClassifier} (gradient
 boosting trên cây quyết định của scikit-learn): xử lý trực tiếp giá trị thiếu và biến phân
@@ -114,7 +111,7 @@ ngưỡng quyết định, và precision/recall khi Ops chỉ xử lý 10\% số
 Mức độ quan trọng của đặc trưng được đo bằng \textit{permutation importance} (mức giảm PR-AUC
 khi xáo trộn đặc trưng) trên 6.000 đơn kiểm định.
 
-\subsection{Ngưỡng quyết định theo chi phí}
+\subsubsection{Ngưỡng quyết định theo chi phí}
 \hspace{1cm}
 Mô hình trả về xác suất $p$; việc biến xác suất thành hành động là một quyết định nghiệp vụ.
 Gọi $C_{FP}$ là chi phí một lần can thiệp không cần thiết và $C_{FN}$ là chi phí bỏ sót một
@@ -134,23 +131,26 @@ lại là \textbf{Low}. Các tham số chi phí đặt trong \texttt{DECISION\_C
 theo thực tế doanh nghiệp. Nhóm cũng thử chọn ngưỡng tối đa F1 trên tập validation, nhưng cách
 này thất bại với mô hình giao trễ do tỷ lệ trễ thay đổi mạnh theo thời gian (Mục~6.4).
 
-\subsection{Phân tích what-if và hành động}
+\subsubsection{Mô phỏng hành động (what-if)}\label{sec:dss-whatif}
 \hspace{1cm}
-Với đơn đang vận chuyển có rủi ro giao trễ, nút \textit{Simulate action} trên Ops Console cho phép
-Ops thử phương án ``nếu hẹn giao thêm $N$ ngày'' (tăng \texttt{estimated\_days}). Đơn được chấm
-điểm lại bằng chính mô hình đã huấn luyện (\texttt{POST /risk/late\_delivery/what-if}), các đặc
-trưng suy ra (như \texttt{slack\_days}) được tính lại nhất quán, và kết quả không được lưu vào
-kho. Ví dụ: một đơn có rủi ro 49,8\%; nếu hẹn giao thêm 5 ngày, rủi ro còn 31,4\%. Giao diện chỉ
-có phương án này vì đơn đã bàn giao cho đơn vị vận chuyển, nên ngày hẹn là đại lượng Ops còn thay
-đổi được.
-
+Trong bảng đơn đang vận chuyển có rủi ro giao trễ trên Ops Console, mỗi dòng có nút
+\textit{Simulate action}.
+Chức năng này được thêm vào để đánh giá rủi ro giao trễ cho 1 đơn nếu thay đổi ngày hẹn
+(kéo dài ngày hẹn giao thêm $N$ ngày, tức tăng \texttt{estimated\_days}). Sử dụng chính mô hình đã huấn luyện
+(API \texttt{POST /risk/late\_delivery/what-if})
+Với đơn mà người bán bàn giao quá muộn (như đơn đầu tiên ở Hình~\ref{fig:ui-ops-late}, bàn giao sau 41 ngày), kéo dài 5 ngày gần
+như không làm giảm rủi ro (98,5\% $\to$ 98,4\%), cho thấy cần hành động khác như liên hệ người bán, tự động huỷ đơn
+hoặc báo trước cho khách. Giao diện chỉ có phương án kéo dài ngày hẹn vì đơn đã bàn giao cho đơn
+vị vận chuyển, nên ngày hẹn là đại lượng Ops còn thay đổi được.
 Mô hình đánh giá thấp không có bước này trên giao diện: đơn đã giao tới khách thì không thể thay
 đổi thời gian giao, nên hành động phù hợp là chăm sóc khách hàng.
+
 Kết quả mô hình đánh giá thấp được dùng trực tiếp để gắn khách hàng vào chiến dịch chăm sóc:
 Ops chọn ngưỡng rủi ro và một chiến dịch trong danh sách tự quản lý, hệ thống lấy khách của các
 đơn có điểm $\geq$ ngưỡng và ghi vào \texttt{dw.campaign\_target} (mỗi khách một lần cho mỗi
 chiến dịch, xét theo khách thật \texttt{customer\_id} nên khách đã đổi địa chỉ, tức có nhiều phiên
-bản SCD2, cũng không bị gắn trùng; nếu khách có nhiều đơn đạt ngưỡng thì giữ đơn rủi ro nhất). Vì Olist là dữ liệu lịch sử, các đơn hiện được chấm điểm thuộc tập kiểm định và đã
+bản SCD2, cũng không bị gắn trùng; nếu khách có nhiều đơn đạt ngưỡng thì giữ đơn rủi ro nhất). 
+Vì Olist là dữ liệu lịch sử, các đơn hiện được chấm điểm thuộc tập kiểm định và đã
 có review thật, nên đây là mô phỏng quy trình: với ngưỡng 50\%, hệ thống chọn 376 trong 18.520
 đơn. Khi triển khai thật, danh sách sẽ lấy từ các đơn vừa giao để Ops chăm sóc trước khi khách
 đánh giá.
@@ -163,44 +163,45 @@ có review thật, nên đây là mô phỏng quy trình: với ngưỡng 50\%, 
 giai đoạn train), theo thứ tự ưu tiên: giá trị người dùng nhập $\to$ trung vị của tuyến hoặc
 ngành hàng (nếu nhóm có ít nhất 20 đơn) $\to$ trung vị toàn sàn (Bảng~\ref{tab:predict-input}).
 
-\begin{table}[H]
-\centering
-\caption{Đầu vào của công cụ dự đoán và giá trị mặc định khi bỏ trống}
-\label{tab:predict-input}
-\small
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{6.2cm}@{}}
-\toprule
-\textbf{Đầu vào} & \textbf{Dùng cho} & \textbf{Khi bỏ trống} \\
-\midrule
-Bang người bán, bang khách, ngành hàng, ngày mua, ngày hẹn giao & Cả hai mô hình & Bắt buộc
-(chỉ nhận giá trị có trong tập train) \\
-Khoảng cách (km) & Cả hai mô hình & Tự điền ngay khi chọn hai bang: trung vị của tuyến; tuyến
-dưới 20 đơn dùng khoảng cách giữa tâm hai bang \\
-Hạn bàn giao (số ngày sau khi mua) & Giao trễ & Cấu hình của sàn
-(\texttt{DEFAULT\_SHIPPING\_LIMIT\_DAYS}); không cấu hình thì trung vị dữ liệu (6 ngày) \\
-Ngày bàn giao vận chuyển & Giao trễ & Trung vị số ngày bàn giao của tuyến \\
-Ngày giao tới khách & Đánh giá thấp & Trung vị số ngày giao của tuyến \\
-Giá trị đơn, phí ship, số sản phẩm, thanh toán & Cả hai mô hình & Trung vị của ngành hàng;
-thanh toán phổ biến nhất (thẻ tín dụng) \\
-\bottomrule
-\end{tabular}
-\end{table}
+% \begin{table}[H]
+% \centering
+% \caption{Đầu vào của công cụ dự đoán và giá trị mặc định khi bỏ trống}
+% \label{tab:predict-input}
+% \small
+% \begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{6.2cm}@{}}
+% \toprule
+% \textbf{Đầu vào} & \textbf{Dùng cho} & \textbf{Khi bỏ trống} \\
+% \midrule
+% Bang người bán, bang khách, ngành hàng, ngày mua, ngày hẹn giao & Cả hai mô hình & Bắt buộc
+% (chỉ nhận giá trị có trong tập train) \\
+% Khoảng cách (km) & Cả hai mô hình & Tự điền ngay khi chọn hai bang: trung vị của tuyến; tuyến
+% dưới 20 đơn dùng khoảng cách giữa tâm hai bang \\
+% Hạn bàn giao (số ngày sau khi mua) & Giao trễ & Cấu hình của sàn
+% (\texttt{DEFAULT\_SHIPPING\_LIMIT\_DAYS}); không cấu hình thì trung vị dữ liệu (6 ngày) \\
+% Ngày bàn giao vận chuyển & Giao trễ & Trung vị số ngày bàn giao của tuyến \\
+% Ngày giao tới khách & Đánh giá thấp & Trung vị số ngày giao của tuyến \\
+% Giá trị đơn, phí ship, số sản phẩm, thanh toán & Cả hai mô hình & Trung vị của ngành hàng;
+% thanh toán phổ biến nhất (thẻ tín dụng) \\
+% \bottomrule
+% \end{tabular}
+% \end{table}
 
 Đặc trưng suy ra (\texttt{slack\_days}, \texttt{handoff\_vs\_limit\_days},
 \texttt{delay\_days}) được tính lại từ các ngày bằng cùng hàm \texttt{derive()} như lúc huấn
 luyện. Kết quả trả về kèm nguồn của từng giá trị (nhập, trung vị tuyến, trung vị ngành, quy định
-sàn, \ldots) và tỷ lệ lịch sử của tuyến để người dùng biết đâu là giả định. Ví dụ tuyến
+sàn, \ldots) và tỷ lệ lịch sử của tuyến để người dùng biết đâu là giả định. 
+Ví dụ tuyến
 SP $\to$ AL (220 đơn lịch sử, 27,3\% trễ), hẹn giao 27 ngày: nếu người bán bàn giao đúng mức
 điển hình, rủi ro trễ khoảng 50\% (vừa chạm ngưỡng High); nếu bàn giao vào ngày thứ 19, rủi ro tăng
 lên 87\% (High) (Hình~\ref{fig:ui-predict}).
 
-Cần lưu ý mô hình học \textit{tương quan} trong dữ liệu lịch sử chứ không phải quan hệ nhân quả.
+Mô hình học \textit{tương quan} trong dữ liệu lịch sử chứ không phải quan hệ nhân quả.
 Thay đổi những đại lượng ít biến động trong dữ liệu (ví dụ đặt hạn bàn giao 3 ngày, trong khi
 dữ liệu chủ yếu 5--7 ngày) có thể cho kết quả ngược trực giác. Vì vậy công cụ phù hợp nhất để so
 sánh các kịch bản về ngày bàn giao và ngày giao -- hai đặc trưng quan trọng nhất của hai mô hình
 (Mục~6.3).
 
-\subsection{Kiến trúc phục vụ mô hình}
+% \subsubsection{Kiến trúc phục vụ mô hình}
 \hspace{1cm}
 Hai mô hình được đóng gói chung trong một dịch vụ FastAPI (\texttt{dss/api/main.py}). Mỗi lần
 huấn luyện lại (\texttt{POST /risk/retrain}, do DAG \texttt{dss\_batch} gọi) sẽ ghi kết quả vào
@@ -212,15 +213,54 @@ kho dữ liệu:
           (\texttt{scope = holdout}, kèm kết quả thật để đối chiếu) và của 1.106 đơn đang vận
           chuyển (\texttt{scope = open}).
 \end{itemize}
-Các endpoint chính: \texttt{GET /risk/\{model\}/summary}, \texttt{GET /risk/\{model\}/orders},
-\texttt{GET /risk/metrics}, \texttt{GET /risk/\{model\}/importance},
-\texttt{POST /risk/\{model\}/what-if}, \texttt{POST /risk/\{model\}/predict},
-\texttt{GET /risk/predict/distance}. Mã nguồn chia theo vai trò: \texttt{risk/features.py} (đọc dữ
-liệu, đặc trưng, nhãn), \texttt{risk/train.py} (huấn luyện, đánh giá, chấm điểm và ghi kết quả vào kho),
-\texttt{risk/predict.py} (dùng mô hình đã huấn luyện cho what-if và dự đoán đơn giả định; file mô hình
-được giữ trong bộ nhớ và tự đọc lại khi huấn luyện lại). Profile dùng cho công cụ dự đoán được lưu cùng mô hình trong
-file \texttt{.pkl}, nên mỗi lần huấn luyện lại thì các giá trị điển hình cũng được cập nhật theo
-dữ liệu mới. Việc tách \texttt{dss} thành dịch vụ độc lập với
-\texttt{backend-api} cho phép huấn luyện lại mô hình (thông qua DAG \texttt{dss\_batch}) độc
-lập với vòng đời của tầng API phục vụ frontend, đồng thời dễ mở rộng hoặc thay thế từng mô
-hình mà không ảnh hưởng các thành phần khác.
+% Các endpoint chính: \texttt{GET /risk/\{model\}/summary}, \texttt{GET /risk/\{model\}/orders},
+% \texttt{GET /risk/metrics}, \texttt{GET /risk/\{model\}/importance},
+% \texttt{POST /risk/\{model\}/what-if}, \texttt{POST /risk/\{model\}/predict},
+% \texttt{GET /risk/predict/distance}. Mã nguồn chia theo vai trò: \texttt{risk/features.py} (đọc dữ
+% liệu, đặc trưng, nhãn), \texttt{risk/train.py} (huấn luyện, đánh giá, chấm điểm và ghi kết quả vào kho),
+% \texttt{risk/predict.py} (dùng mô hình đã huấn luyện cho mô phỏng hành động (what-if) và dự đoán đơn giả định; file mô hình
+% được giữ trong bộ nhớ và tự đọc lại khi huấn luyện lại). Profile dùng cho công cụ dự đoán được lưu cùng mô hình trong
+% file \texttt{.pkl}, nên mỗi lần huấn luyện lại thì các giá trị điển hình cũng được cập nhật theo
+% dữ liệu mới. Việc tách \texttt{dss} thành dịch vụ độc lập với
+% \texttt{backend-api} cho phép huấn luyện lại mô hình (thông qua DAG \texttt{dss\_batch}) độc
+% lập với vòng đời của tầng API phục vụ frontend, đồng thời dễ mở rộng hoặc thay thế từng mô
+% hình mà không ảnh hưởng các thành phần khác.
+
+\subsection{Luồng dữ liệu đầu-cuối}
+\hspace{1cm}
+Hình~\ref{fig:sequence} minh họa luồng xử lý một yêu cầu điển hình từ Manager Dashboard: (1)
+người dùng chọn khoảng thời gian trên dashboard; (2) frontend gọi API
+\texttt{GET /dashboard/\allowbreak revenue-trend}; (3) backend-api truy vấn \texttt{mv\_revenue\_by\_month\_category}
+trên kho dữ liệu; (4) kết quả trả về và được trực quan hóa dưới dạng biểu đồ.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    actor/.style={draw, rounded corners, fill=black!5, minimum width=2.8cm,
+                  minimum height=1.2cm, font=\small, align=center},
+    lbl/.style={font=\scriptsize, align=center},
+    arr/.style={-{Stealth[length=2mm]}, thick}
+]
+\node[actor] (fe) at (0,0) {Manager\\Dashboard};
+\node[actor] (be) at (7,0) {Backend API\\(BFF)};
+\node[actor] (dw) at (14,0) {Kho dữ liệu\\(OLAP view)};
+
+\draw[arr] ([yshift=5pt]fe.east) -- node[above, lbl]{\texttt{GET /dashboard/revenue-trend}\\\texttt{?year=\&category=\&region=}}
+    ([yshift=5pt]be.west);
+\draw[arr] ([yshift=5pt]be.east) -- node[above, lbl]{\texttt{SELECT ... FROM}\\\texttt{mv\_revenue\_by\_}\\\texttt{month\_category}}
+    ([yshift=5pt]dw.west);
+\draw[arr] ([yshift=-8pt]dw.west) -- node[below, lbl]{Các dòng kết quả}
+    ([yshift=-8pt]be.east);
+\draw[arr] ([yshift=-8pt]be.west) -- node[below, lbl]{JSON}
+    ([yshift=-8pt]fe.east);
+\end{tikzpicture}
+\caption{Luồng xử lý một yêu cầu truy vấn doanh thu từ dashboard}
+\label{fig:sequence}
+\end{figure}
+
+\texttt{backend-api} (FastAPI) đóng vai trò \textit{Backend-for-Frontend}: các truy vấn thống kê
+(KPI, doanh thu, hiệu suất giao hàng, xếp hạng sản phẩm) đọc trực tiếp từ OLAP view và bảng
+fact của kho dữ liệu; các yêu cầu liên quan tới mô hình (danh sách đơn rủi ro, mô phỏng hành động, dự đoán
+cho đơn tự nhập) được chuyển tiếp sang \texttt{dss} service; thao tác chiến dịch chăm sóc (thêm,
+sửa, xóa, gắn khách có rủi ro đánh giá thấp $\geq$ ngưỡng) ghi vào \texttt{dw.care\_campaign} và
+\texttt{dw.campaign\_target}.

@@ -86,20 +86,6 @@ def upsert_dim_payment_type():
         print(f"Dim_Payment_Type: +{cur.rowcount} rows")
 
 
-def seed_care_campaigns():
-    """Thêm campaign có mã mới trong file; không ghi đè tên/mô tả đã sửa và không khôi phục campaign đã xoá trên UI."""
-    with transaction() as cur:
-        cur.execute("""
-            INSERT INTO dw.care_campaign (campaign_code, campaign_name, description)
-            SELECT DISTINCT ON (s.campaign_code) s.campaign_code, s.campaign_name, s.description
-            FROM staging.care_campaigns s
-            WHERE NOT EXISTS (SELECT 1 FROM dw.care_campaign c WHERE c.campaign_code = s.campaign_code)
-            ORDER BY s.campaign_code
-            ON CONFLICT DO NOTHING
-        """)
-        print(f"Care_Campaign: +{cur.rowcount} rows")
-
-
 def upsert_dim_product():
     """SCD Type 1. Dịch category sang tiếng Anh; thiếu bản dịch -> giữ tên gốc; NULL -> 'unknown'."""
     with transaction() as cur:
@@ -180,7 +166,6 @@ def run_all():
     upsert_dim_location()
     upsert_dim_seller()
     upsert_dim_payment_type()
-    seed_care_campaigns()
     upsert_dim_product()
     upsert_dim_customer_scd2()
 

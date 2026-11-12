@@ -3,7 +3,7 @@
 Đồ án môn **CO4031 - Kho dữ liệu & Hệ hỗ trợ Quyết định** (HK261, ĐH Bách Khoa TPHCM).
 
 DSS gồm 2 mô hình trên dữ liệu Olist thật: **rủi ro giao trễ hạn** (chấm điểm lúc đơn được bàn giao vận
-chuyển) và **rủi ro nhận review thấp ≤ 2 sao** (chấm điểm lúc đơn vừa giao tới khách), kèm what-if và campaign
+chuyển) và **rủi ro nhận review thấp ≤ 2 sao** (chấm điểm lúc đơn vừa giao tới khách), kèm mô phỏng hành động (Simulate action — what-if kéo dài ngày hẹn giao) và campaign
 chăm sóc khách. Xem thiết kế đầy đủ tại [`docs/dw-design.md`](docs/dw-design.md) và [`docs/dss-design.md`](docs/dss-design.md).
 
 ## Cấu trúc thư mục
@@ -11,7 +11,7 @@ chăm sóc khách. Xem thiết kế đầy đủ tại [`docs/dw-design.md`](doc
 | Thư mục | Nội dung |
 |---|---|
 | `docs/` | Yêu cầu nghiệp vụ, thiết kế DW, thiết kế DSS |
-| `data/` | Dataset gốc (`raw/`), danh sách campaign chăm sóc (`campaigns/care_campaigns.csv`) |
+| `data/` | Dataset gốc Olist (`raw/`) |
 | `infra/` | Docker Compose cho toàn bộ hạ tầng (Postgres, Airflow, services) |
 | `etl/` | Airflow DAGs + extract/transform/load scripts |
 | `warehouse/` | DDL cho staging + DW (star schema), OLAP views |
@@ -96,7 +96,7 @@ Cấu trúc `frontend/src/`:
 | `components/Dashboard.tsx` | Khối giao diện dùng chung: tiêu đề trang/mục/panel, chú giải, thông báo, trạng thái tải/lỗi/trống, ô chọn, bảng sắp xếp được, nhãn mức rủi ro |
 | `components/ListTools.tsx` | Ô chọn số dòng `[n] / tổng` và nút tải `.csv` / `.xlsx` (tải các dòng đang hiển thị) |
 | `pages/ManagerDashboard.tsx` | KPI, doanh thu theo tháng / theo bang (lọc năm/ngành/vùng, nút Export report ra CSV), tỷ lệ giao trễ & review thấp theo tháng, review thấp theo mức trễ, 10 tuyến giao trễ nhiều nhất, 10 sản phẩm doanh thu thấp nhất |
-| `pages/OpsConsole.tsx` | Đơn đang vận chuyển có rủi ro giao trễ + nút Simulate action (thử dời ngày hẹn thêm N ngày, gọi API what-if), đơn rủi ro review thấp, gắn khách rủi ro vào campaign chăm sóc. Chất lượng mô hình không hiển thị trên giao diện (xem báo cáo, Mục 6.3 Kết quả hai mô hình DSS) |
+| `pages/OpsConsole.tsx` | Đơn đang vận chuyển có rủi ro giao trễ + nút Simulate action mở khung Action simulation (nhập *Extend estimated delivery by* N ngày → *Simulate risk after action*, hiện *Current risk → After action*; gọi API `POST /risk/late_delivery/what-if`, không ghi vào DW), đơn rủi ro review thấp, gắn khách rủi ro vào campaign chăm sóc. Chất lượng mô hình không hiển thị trên giao diện (xem báo cáo, Mục 6.3 Kết quả hai mô hình DSS) |
 | `pages/CampaignManager.tsx` | Danh sách campaign; nút Create campaign mở form tạo; sửa / xoá trong bảng; nút Details hiện mô tả + danh sách khách đã gắn |
 | `pages/RiskPredictor.tsx` | Công cụ dự đoán cho 1 đơn tự nhập (khoảng cách tự điền khi chọn 2 bang, sửa tay được): % rủi ro giao trễ và % rủi ro review thấp, kèm ngưỡng, lịch sử tuyến và giá trị mô hình đã dùng; đổi đầu vào thì xoá kết quả cũ |
 
@@ -109,10 +109,10 @@ thêm endpoint vào `api.ts`. Không cần mở thêm cổng hay sửa CORS.
 ### Notebook trình bày mô hình (tuỳ chọn)
 
 Code mô hình: `dss/risk/features.py` (đọc dữ liệu, feature, nhãn), `train.py` (train + đánh giá + chấm điểm, ghi kết quả
-vào DW), `predict.py` (dùng model đã train: what-if và dự đoán đơn giả định).
+vào DW), `predict.py` (dùng model đã train: mô phỏng hành động/what-if và dự đoán đơn giả định).
 
 `dss/notebooks/risk_models.ipynb` đi lại từng bước của `dss/risk/train.py` (đọc dữ liệu, EDA, train HGB vs LogReg,
-ngưỡng theo chi phí, PR curve, feature importance, what-if) bằng chính các hàm của project. Notebook đã lưu sẵn output
+ngưỡng theo chi phí, PR curve, feature importance, mô phỏng what-if) bằng chính các hàm của project. Notebook đã lưu sẵn output
 nên mở ra xem/present được ngay. Muốn chạy lại: cần DB (bước 2–3) và môi trường có `jupyter`, `pandas`, `scikit-learn`
 (nên cùng bản với container, 1.9.1), `sqlalchemy`, `psycopg2-binary`, `matplotlib`. Notebook chỉ **đọc** kho, không ghi
 đè model hay bảng kết quả.
@@ -160,17 +160,12 @@ rồi `docker compose --env-file .env.local up -d dss`. Trên form vẫn sửa �
 - **Frontend báo `API error 404 on /risk/...`**: container `backend-api`/`dss` đang chạy image cũ.
   `up -d` không tự build lại khi code đổi, phải dùng `docker compose --env-file .env.local up -d --build dss backend-api`.
   Kiểm tra: `curl localhost:8000/openapi.json` phải có các path `/risk/...`.
-- **What-if báo 500, log `dss` có `ModuleNotFoundError: No module named '_loss'`**: file `dss/models/*.pkl` được train
+- **Simulate action (API what-if) báo 500, log `dss` có `ModuleNotFoundError: No module named '_loss'`**: file `dss/models/*.pkl` được train
   bằng phiên bản scikit-learn khác với trong container (ví dụ train trên máy). Train lại trong container:
   `curl -X POST localhost:8001/risk/retrain` (~50 giây).
 - **Sửa code `dss/`**: build lại `docker compose --env-file .env.local up -d --build dss`.
 
-## Tuỳ chỉnh danh sách campaign
+## Campaign chăm sóc
 
-Danh sách ban đầu nằm ở `data/campaigns/care_campaigns.csv` (cột `campaign_code`, `campaign_name`, `description`).
-
-- **Thêm campaign bằng file:** thêm 1 dòng với mã mới (đừng dùng dạng `CMP0001`, vì UI tự sinh mã dạng này), rồi chạy lại ETL
-  (`scripts/seed_db.sh` hoặc DAG `staging_load`).
-- **Thay đổi hằng ngày:** dùng màn hình Campaign. Thay đổi lưu trong DB (`dw.care_campaign`), không ghi ngược vào file.
-- ETL chỉ thêm **mã mới**: sửa tên của mã đã có trong file sẽ không có tác dụng (hãy sửa trên UI), và campaign đã xoá trên UI
-  không tự xuất hiện lại.
+Campaign không thuộc ETL: hai bảng `dw.care_campaign` và `dw.campaign_target` chỉ lưu dữ liệu cho DSS, do Ops thêm/sửa/xoá
+campaign và gắn khách trên màn hình Campaign / Ops Console (qua backend API). Sau khi tạo DB lần đầu, danh sách campaign rỗng.

@@ -16,7 +16,7 @@ x-airflow-common: &airflow-common
     - ../etl/dags:/opt/airflow/dags
     - ../etl:/opt/airflow/etl
     - ../warehouse:/opt/airflow/warehouse
-    - ../data:/opt/airflow/data:ro      # Olist CSV (data/raw) + campaign (data/campaigns)
+    - ../data:/opt/airflow/data:ro      # Olist CSV (data/raw)
   depends_on:
     db:
       condition: service_healthy

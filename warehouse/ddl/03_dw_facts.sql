@@ -124,9 +124,8 @@ CREATE TABLE IF NOT EXISTS dw.model_feature_importance (
     PRIMARY KEY (model_name, model_version, feature)
 );
 
--- Campaign chăm sóc khách hàng: bảng VẬN HÀNH do Ops thêm/sửa/xoá trên tab Campaign, không phải dimension
--- (không fact nào tham chiếu). data/campaigns/care_campaigns.csv chỉ THÊM mã mới, không ghi đè thay đổi trên UI.
--- Xoá mềm (deleted_at) để chạy lại ETL không làm campaign đã xoá xuất hiện trở lại.
+-- Campaign chăm sóc khách hàng: bảng lưu trữ cho DSS, do Ops thêm/sửa/xoá trên tab Campaign (qua backend API).
+-- Không phải dimension (không fact nào tham chiếu) và ETL không ghi vào. Xoá mềm (deleted_at) để giữ lịch sử.
 CREATE TABLE IF NOT EXISTS dw.care_campaign (
     campaign_sk     SERIAL PRIMARY KEY,
     campaign_code   TEXT UNIQUE NOT NULL,

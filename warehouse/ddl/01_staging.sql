@@ -97,11 +97,3 @@ CREATE TABLE IF NOT EXISTS staging.product_category_translation (
     product_category_name_english  TEXT,
     loaded_at                      TIMESTAMP NOT NULL DEFAULT now()
 );
-
--- ===== Danh sách campaign chăm sóc (data/campaigns/care_campaigns.csv) — Olist không có =====
-CREATE TABLE IF NOT EXISTS staging.care_campaigns (
-    campaign_code   TEXT NOT NULL,
-    campaign_name   TEXT NOT NULL,
-    description     TEXT,
-    loaded_at       TIMESTAMP NOT NULL DEFAULT now()
-);

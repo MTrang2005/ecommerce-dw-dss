@@ -1,11 +1,11 @@
-\section{PHÂN TÍCH YÊU CẦU NGHIỆP VỤ}
+\section{PHÂN TÍCH YÊU CẦU}
 
-\subsection{Bài toán nghiệp vụ}
+\subsection{Bài toán}
 \hspace{1cm}
 Olist là một sàn thương mại điện tử kết nối nhiều người bán nhỏ với khách hàng trên toàn
 Brazil; hàng được người bán tự đóng gói và bàn giao cho đơn vị vận chuyển. Với quy mô lãnh
-thổ lớn, \textbf{giao hàng đúng hạn} là yếu tố quyết định trải nghiệm khách hàng: trong dữ liệu,
-6,8\% đơn đã giao bị trễ so với ngày hẹn, và 60,9\% số đơn trễ nhận đánh giá $\leq$ 2 sao.
+thổ lớn, giao hàng đúng hạn là yếu tố quyết định trải nghiệm khách hàng: trong dữ liệu,
+6,8\% đơn đã giao bị trễ so với ngày hẹn, và 60,9\% số đơn trễ nhận đánh giá $\leq$ 2 sao.\\
 Sàn cần: (1) theo dõi doanh số theo thời gian, ngành hàng và khu vực; (2) theo dõi hiệu suất
 giao hàng và mức độ hài lòng theo tháng, theo tuyến vận chuyển; (3) phát hiện sớm các đơn có
 nguy cơ giao trễ để can thiệp (liên hệ người bán, hãng vận chuyển, báo trước cho khách); và
@@ -38,13 +38,13 @@ bị đánh giá thấp, xem đề xuất xử lý cho đơn giao trễ, gắn k
     \item Tỷ lệ giao trễ, thời gian giao và điểm đánh giá biến động thế nào theo tháng và theo
           tuyến (bang người bán $\to$ bang khách)? Giao trễ ảnh hưởng tới điểm đánh giá ra sao?
     \item Đơn đang vận chuyển nào có nguy cơ giao trễ hạn, nên ưu tiên can thiệp đơn nào trước,
-          và nếu dời ngày hẹn giao thì rủi ro giảm bao nhiêu?
+          và nếu kéo dài ngày hẹn giao thì rủi ro giảm bao nhiêu?
     \item Đơn vừa giao nào có nguy cơ nhận đánh giá thấp, khách hàng nào nên được đưa vào chiến
           dịch chăm sóc?
 \end{enumerate}
 Các câu hỏi 1--3 được trả lời trực tiếp bằng truy vấn OLAP trên kho dữ liệu (Mục~3.3),
 trong khi câu hỏi 4--5 đòi hỏi các mô hình dự đoán -- chính là các thành phần DSS được trình
-bày ở Mục~5.
+bày ở Mục~\ref{sec:dss}.
 
 \subsection{Nguồn dữ liệu}
 \begin{itemize}
@@ -53,11 +53,10 @@ bày ở Mục~5.
           phẩm, 96 nghìn khách hàng, 3 nghìn người bán, 99 nghìn đánh giá và 1 triệu điểm tọa độ
           theo mã bưu chính. Dữ liệu ghi đầy đủ các mốc thời gian của đơn (mua, duyệt, bàn giao
           vận chuyển, giao tới khách, ngày hẹn giao), là cơ sở cho hai mô hình DSS.
-    \item \textbf{Dữ liệu cấu hình} (danh sách chiến dịch chăm sóc): Olist không có thực thể
-          này, nên nhóm soạn 3 chiến dịch mẫu trong file
-          \texttt{data/campaigns/care\_campaigns.csv}. Ops có thể thêm, sửa, xóa chiến dịch trên
-          giao diện. Danh sách này \textbf{không} dùng cho phân tích và \textbf{không} làm đầu
-          vào cho mô hình DSS.
+    \item \textbf{Chiến dịch chăm sóc}: Olist không có thực thể này. Chiến dịch không phải dữ
+          liệu nguồn và không đi qua ETL: Ops tự thêm, sửa, xóa chiến dịch trên giao diện, dữ liệu
+          được lưu trong kho để phục vụ DSS. Danh sách này không dùng cho phân tích và không làm
+          đầu vào cho mô hình DSS.
     \item Olist không có thông tin kênh bán, tồn kho và tên sản phẩm, nên các phân tích liên
           quan được thực hiện ở mức ngành hàng.
 \end{itemize}

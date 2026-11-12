@@ -28,7 +28,6 @@ with DAG(
         PythonOperator(task_id="upsert_dim_location", python_callable=transform_dw.upsert_dim_location),
         PythonOperator(task_id="upsert_dim_seller", python_callable=transform_dw.upsert_dim_seller),
         PythonOperator(task_id="upsert_dim_payment_type", python_callable=transform_dw.upsert_dim_payment_type),
-        PythonOperator(task_id="seed_care_campaigns", python_callable=transform_dw.seed_care_campaigns),
         PythonOperator(task_id="upsert_dim_product", python_callable=transform_dw.upsert_dim_product),
         PythonOperator(task_id="upsert_dim_customer", python_callable=transform_dw.upsert_dim_customer_scd2),
     ]

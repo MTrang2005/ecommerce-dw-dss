@@ -1,4 +1,0 @@
-campaign_code,campaign_name,description
-CARE_VOUCHER,Apology voucher,Send a discount voucher to customers whose orders have a high low-rating risk to apologize before they leave a review.
-CARE_CALL,Follow-up call,Customer service calls the customer to check on the delivery experience and resolve any issues right away.
-CARE_PRIORITY,Priority support,Move the customer to the priority queue: all return and complaint requests are handled first.

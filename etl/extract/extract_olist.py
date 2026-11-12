@@ -1,4 +1,4 @@
-"""Extract: nạp 9 file CSV Olist (data/raw/) + danh sách campaign chăm sóc (data/campaigns/) vào schema `staging`.
+"""Extract: nạp 9 file CSV Olist (data/raw/) vào schema `staging`.
 
 Chỉ đổi tên/chọn cột, không transform nghiệp vụ. Mỗi lần chạy TRUNCATE bảng staging rồi COPY lại
 (full reload) -> chạy lại nhiều lần không bị nhân đôi dữ liệu.
@@ -40,8 +40,6 @@ SOURCES: dict[str, tuple[str, list[str]]] = {
     "product_category_translation": ("raw/product_category_name_translation.csv", [
         "product_category_name", "product_category_name_english",
     ]),
-    # File do nhóm tự chỉnh: mỗi dòng 1 campaign chăm sóc
-    "care_campaigns": ("campaigns/care_campaigns.csv", ["campaign_code", "campaign_name", "description"]),
 }
 
 

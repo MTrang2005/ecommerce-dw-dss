@@ -437,6 +437,7 @@ function DeliverySection() {
 export default function ManagerDashboard() {
   const [kpi, setKpi] = useState<KpiSummary | null>(null);
   const [allRevenue, setAllRevenue] = useState<RevenueRow[]>([]);
+  const [topProducts, setTopProducts] = useState<TopProduct[] | null>(null);
   const [slowProducts, setSlowProducts] = useState<TopProduct[] | null>(null);
   const [initialError, setInitialError] = useState<string | null>(null);
   const [initialAttempt, setInitialAttempt] = useState(0);
@@ -461,6 +462,12 @@ export default function ManagerDashboard() {
       .revenueTrend()
       .then((r) => {
         if (!stale) setAllRevenue(r);
+      })
+      .catch(failed);
+    api
+      .topProducts(10)
+      .then((p) => {
+        if (!stale) setTopProducts(p);
       })
       .catch(failed);
     api
@@ -846,6 +853,37 @@ export default function ManagerDashboard() {
       <DeliverySection />
       <section className="dashboard-section products-section">
         <SectionHeading title="Product performance" aside="Full dataset" />
+        <div className="surface table-panel">
+          <PanelHeading
+            title="10 highest-revenue products"
+            description="Products ranked by total revenue, from highest to lowest"
+            aside={
+              <span className="small-pill">
+                {topProducts?.length ?? 0}{" "}
+                {topProducts?.length === 1 ? "product" : "products"}
+              </span>
+            }
+          />
+          {topProducts === null ? (
+            <DataState
+              status={initialError ? "error" : "loading"}
+              title={initialError ? "Unable to load product data" : undefined}
+            />
+          ) : !topProducts.length ? (
+            <DataState status="empty" title="No product data available." />
+          ) : (
+            <DataTable
+              rows={topProducts}
+              columns={productColumns}
+              rowKey={(p) => p.product_id}
+              label="Highest-revenue products"
+            />
+          )}
+          <TableFootnote>
+            Product names are not available in this dataset. IDs are shortened
+            for readability; hover over an ID for the full value.
+          </TableFootnote>
+        </div>
         <div className="surface table-panel">
           <PanelHeading
             title="10 lowest-revenue products"

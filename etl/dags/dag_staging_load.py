@@ -1,4 +1,4 @@
-"""Airflow DAG: nạp CSV Olist (data/raw) + danh sách campaign (data/campaigns) vào schema staging,
+"""Airflow DAG: nạp CSV Olist (data/raw) vào schema staging,
 xong thì kích hoạt DAG `dw_load`.
 
 Olist là dataset lịch sử tĩnh nên DAG chạy thủ công (schedule=None) thay vì @daily.
@@ -15,7 +15,7 @@ default_args = {"owner": "data-team", "retries": 1}
 
 with DAG(
     dag_id="staging_load",
-    description="Load Olist CSV + campaign CSV vào schema staging",
+    description="Load Olist CSV vào schema staging",
     schedule=None,
     start_date=datetime(2026, 9, 1),
     catchup=False,
