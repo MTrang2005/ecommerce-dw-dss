@@ -172,73 +172,62 @@ Low & 17.737 & 1,9\% & 14.801 & 6,5\% \\
           khách, nên chưa đo được hiệu quả chăm sóc thật.
 \end{itemize}
 
-\subsection{Thiếu sót của đề tài và định hướng mở rộng kho dữ liệu}
-\label{sec:dw-gaps}
-\hspace{1cm}
-Khi đối soát hai bảng fact với các bảng chiều, nhóm nhận thấy nhiều thuộc tính được nạp vào
-kho nhưng không có truy vấn nào sử dụng. Để thiết kế gọn và đúng phạm vi đề tài, các thuộc tính
-này đã được \textbf{lược bỏ}; bảng chiều chỉ giữ những gì OLAP view, API và mô hình DSS đang
-dùng, cùng các khóa tự nhiên cần cho ETL. Đây là một thiếu sót về độ phủ phân tích: kho dữ liệu
-hiện trả lời tốt năm câu hỏi nghiệp vụ ở Mục~2.3 nhưng chưa hỗ trợ nhiều góc nhìn ad-hoc.
-Bảng~\ref{tab:dropped-attrs} liệt kê các thuộc tính có thể bổ sung lại (dữ liệu nguồn vẫn còn
-trong staging) và loại truy vấn ad-hoc mà chúng phục vụ trong tương lai.
+% \begin{table}[H]
+% \centering
+% \caption{Thuộc tính đã lược bỏ và truy vấn ad-hoc có thể phục vụ khi bổ sung lại}
+% \label{tab:dropped-attrs}
+% \small
+% \begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{6.8cm}@{}}
+% \toprule
+% \textbf{Bảng chiều} & \textbf{Thuộc tính} & \textbf{Truy vấn ad-hoc trong tương lai} \\
+% \midrule
+% \texttt{DIM\_DATE} & quý, mùa (Nam bán cầu), cuối tuần, tuần trong năm, tên thứ/tháng &
+% Phân tích mùa vụ (doanh thu, tỷ lệ trễ theo quý/mùa), so sánh đơn đặt cuối tuần và ngày thường,
+% báo cáo theo tuần. \\
+% \texttt{DIM\_PRODUCT} & tên ngành gốc, độ dài tên/mô tả, số ảnh, khối lượng, thể tích &
+% Chất lượng trang sản phẩm (số ảnh, độ dài mô tả) so với điểm đánh giá; sản phẩm nặng/cồng kềnh
+% có dễ giao trễ không. \\
+% \texttt{DIM\_SELLER} & zip, thành phố, vùng & Hiệu suất giao hàng theo vùng hoặc thành phố
+% của người bán, tuyến vùng $\to$ vùng. \\
+% \texttt{DIM\_LOCATION} & tên bang, quốc gia & Hiển thị báo cáo bằng tên đầy đủ, mở rộng sang
+% thị trường ngoài Brazil. \\
+% \texttt{DIM\_CUSTOMER} & ngày mua đầu tiên & Phân tích cohort, so sánh khách mới và khách quay
+% lại. \\
+% \bottomrule
+% \end{tabular}
+% \end{table}
 
-\begin{table}[H]
-\centering
-\caption{Thuộc tính đã lược bỏ và truy vấn ad-hoc có thể phục vụ khi bổ sung lại}
-\label{tab:dropped-attrs}
-\small
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{6.8cm}@{}}
-\toprule
-\textbf{Bảng chiều} & \textbf{Thuộc tính} & \textbf{Truy vấn ad-hoc trong tương lai} \\
-\midrule
-\texttt{DIM\_DATE} & quý, mùa (Nam bán cầu), cuối tuần, tuần trong năm, tên thứ/tháng &
-Phân tích mùa vụ (doanh thu, tỷ lệ trễ theo quý/mùa), so sánh đơn đặt cuối tuần và ngày thường,
-báo cáo theo tuần. \\
-\texttt{DIM\_PRODUCT} & tên ngành gốc, độ dài tên/mô tả, số ảnh, khối lượng, thể tích &
-Chất lượng trang sản phẩm (số ảnh, độ dài mô tả) so với điểm đánh giá; sản phẩm nặng/cồng kềnh
-có dễ giao trễ không. \\
-\texttt{DIM\_SELLER} & zip, thành phố, vùng & Hiệu suất giao hàng theo vùng hoặc thành phố
-của người bán, tuyến vùng $\to$ vùng. \\
-\texttt{DIM\_LOCATION} & tên bang, quốc gia & Hiển thị báo cáo bằng tên đầy đủ, mở rộng sang
-thị trường ngoài Brazil. \\
-\texttt{DIM\_CUSTOMER} & ngày mua đầu tiên & Phân tích cohort, so sánh khách mới và khách quay
-lại. \\
-\bottomrule
-\end{tabular}
-\end{table}
+% Ngược lại, một số \textbf{khóa ngoại} chưa được truy vấn nào dùng nhưng vẫn được \textbf{giữ lại}
+% vì chúng là khung của star schema và chi phí lưu trữ thấp:
+% \texttt{customer\_sk}, \texttt{seller\_sk}, \texttt{payment\_type\_sk} trong
+% \texttt{FACT\_ORDER\_ITEM} (phân tích doanh thu theo khách, người bán, phương thức thanh toán),
+% và bốn vai trò ngày \texttt{approved\_date\_sk}, \texttt{carrier\_date\_sk},
+% \texttt{delivered\_date\_sk}, \texttt{estimated\_date\_sk} trong
+% \texttt{FACT\_ORDER\_FULFILLMENT} (thống kê theo tháng giao hàng hoặc tháng bàn giao thay vì
+% tháng mua). Tương tự, ba độ đo \texttt{total\_value}, \texttt{delivery\_days},
+% \texttt{is\_late\_delivery} của \texttt{FACT\_ORDER\_ITEM} vẫn được ETL tính nhưng chưa được
+% truy vấn, vì phân tích giao hàng dùng \texttt{FACT\_ORDER\_FULFILLMENT}. Định hướng mở rộng:
+% \begin{itemize}
+%     \item Bổ sung lại các thuộc tính trong Bảng~\ref{tab:dropped-attrs} khi có câu hỏi nghiệp vụ
+%           cụ thể, kèm OLAP view và bộ lọc tương ứng trên Manager Dashboard (ví dụ bộ lọc quý,
+%           mùa).
+%     \item Xây thêm OLAP view theo các vai trò ngày khác của \texttt{FACT\_ORDER\_FULFILLMENT}
+%           và theo người bán, khách hàng của \texttt{FACT\_ORDER\_ITEM}.
+%     \item Duy trì bước đối soát fact -- dimension (khóa NULL, dòng chiều không được tham chiếu,
+%           thuộc tính không được dùng) như một phần của kiểm tra chất lượng định kỳ; chính bước
+%           này đã giúp phát hiện lỗi mốc hiệu lực SCD2 theo ngày (Mục~3.2).
+% \end{itemize}
 
-Ngược lại, một số \textbf{khóa ngoại} chưa được truy vấn nào dùng nhưng vẫn được \textbf{giữ lại}
-vì chúng là khung của star schema và chi phí lưu trữ thấp:
-\texttt{customer\_sk}, \texttt{seller\_sk}, \texttt{payment\_type\_sk} trong
-\texttt{FACT\_ORDER\_ITEM} (phân tích doanh thu theo khách, người bán, phương thức thanh toán),
-và bốn vai trò ngày \texttt{approved\_date\_sk}, \texttt{carrier\_date\_sk},
-\texttt{delivered\_date\_sk}, \texttt{estimated\_date\_sk} trong
-\texttt{FACT\_ORDER\_FULFILLMENT} (thống kê theo tháng giao hàng hoặc tháng bàn giao thay vì
-tháng mua). Tương tự, ba độ đo \texttt{total\_value}, \texttt{delivery\_days},
-\texttt{is\_late\_delivery} của \texttt{FACT\_ORDER\_ITEM} vẫn được ETL tính nhưng chưa được
-truy vấn, vì phân tích giao hàng dùng \texttt{FACT\_ORDER\_FULFILLMENT}. Định hướng mở rộng:
-\begin{itemize}
-    \item Bổ sung lại các thuộc tính trong Bảng~\ref{tab:dropped-attrs} khi có câu hỏi nghiệp vụ
-          cụ thể, kèm OLAP view và bộ lọc tương ứng trên Manager Dashboard (ví dụ bộ lọc quý,
-          mùa).
-    \item Xây thêm OLAP view theo các vai trò ngày khác của \texttt{FACT\_ORDER\_FULFILLMENT}
-          và theo người bán, khách hàng của \texttt{FACT\_ORDER\_ITEM}.
-    \item Duy trì bước đối soát fact -- dimension (khóa NULL, dòng chiều không được tham chiếu,
-          thuộc tính không được dùng) như một phần của kiểm tra chất lượng định kỳ; chính bước
-          này đã giúp phát hiện lỗi mốc hiệu lực SCD2 theo ngày (Mục~3.2).
-\end{itemize}
-
-\subsection{Hướng phát triển}
-\begin{itemize}
-    \item Chấm điểm lại nhiều lần trong vòng đời đơn (lúc duyệt, lúc bàn giao, mỗi ngày khi đang
-          vận chuyển) thay vì một thời điểm cố định.
-    \item Thêm đặc trưng lịch sử vận hành (tỷ lệ trễ gần đây theo tuyến, theo người bán) tính
-          theo cửa sổ thời gian, kèm cơ chế giám sát drift và tự huấn luyện lại.
-    \item Hiệu chỉnh xác suất (\textit{calibration}) và cho phép Ops nhập chi phí trên giao diện
-          để tự điều chỉnh ngưỡng.
-    \item Đo hiệu quả thật của chiến dịch chăm sóc bằng thử nghiệm A/B (nhóm được tặng voucher và
-          nhóm đối chứng) để ước lượng lại $C_{FN}$.
-    \item Khai thác nội dung đánh giá (xử lý ngôn ngữ tự nhiên tiếng Bồ Đào Nha) để hiểu nguyên
-          nhân đánh giá thấp.
-\end{itemize}
+% \subsection{Hướng phát triển}
+% \begin{itemize}
+%     \item Chấm điểm lại nhiều lần trong vòng đời đơn (lúc duyệt, lúc bàn giao, mỗi ngày khi đang
+%           vận chuyển) thay vì một thời điểm cố định.
+%     \item Thêm đặc trưng lịch sử vận hành (tỷ lệ trễ gần đây theo tuyến, theo người bán) tính
+%           theo cửa sổ thời gian, kèm cơ chế giám sát drift và tự huấn luyện lại.
+%     \item Hiệu chỉnh xác suất (\textit{calibration}) và cho phép Ops nhập chi phí trên giao diện
+%           để tự điều chỉnh ngưỡng.
+%     \item Đo hiệu quả thật của chiến dịch chăm sóc bằng thử nghiệm A/B (nhóm được tặng voucher và
+%           nhóm đối chứng) để ước lượng lại $C_{FN}$.
+%     \item Khai thác nội dung đánh giá (xử lý ngôn ngữ tự nhiên tiếng Bồ Đào Nha) để hiểu nguyên
+%           nhân đánh giá thấp.
+% \end{itemize}

@@ -14,10 +14,18 @@ và được đưa vào quy trình ra quyết định qua ngưỡng theo chi ph�
 dịch chăm sóc khách hàng trên Ops Console và công cụ dự đoán rủi ro cho một đơn do người dùng tự
 nhập (tuyến, ngành hàng, các mốc ngày).
 
+
+
+% \subsection{Thiếu sót của đề tài}
+% \label{sec:dw-gaps}
+% \hspace{1cm}
+% Khi đối soát hai bảng fact với các bảng chiều, nhóm nhận thấy nhiều thuộc tính được nạp vào
+% kho nhưng không có truy vấn nào sử dụng. Để thiết kế gọn và đúng phạm vi đề tài, các thuộc tính
+% này đã được \textbf{lược bỏ}; bảng chiều chỉ giữ những gì OLAP view, API và mô hình DSS đang
+% dùng, cùng các khóa tự nhiên cần cho ETL. Đây là một thiếu sót về độ phủ phân tích: kho dữ liệu
+% hiện trả lời tốt năm câu hỏi nghiệp vụ ở Mục~2.3 nhưng chưa hỗ trợ nhiều góc nhìn ad-hoc.
+% Bảng~\ref{tab:dropped-attrs} liệt kê các thuộc tính có thể bổ sung lại (dữ liệu nguồn vẫn còn
+% trong staging) và loại truy vấn ad-hoc mà chúng phục vụ trong tương lai.
+
 \subsection{Đề xuất hướng phát triển}
-\begin{itemize}
-    \item Chấm điểm rủi ro nhiều lần trong vòng đời đơn và giám sát drift để tự huấn luyện lại.
-    \item Bổ sung dữ liệu vận chuyển (hãng, tuyến, sự kiện) và nội dung đánh giá để cải thiện mô
-          hình đánh giá thấp.
-    \item Kiểm chứng chi phí và hiệu quả chiến dịch chăm sóc bằng thử nghiệm A/B.
-\end{itemize}
+Đề xuất nâng cao mô hình bằng cách chấm điểm rủi ro xuyên suốt vòng đời đơn hàng, kết hợp dữ liệu lịch sử vận hành theo tuyến và người bán, đồng thời triển khai cơ chế giám sát drift và tự động huấn luyện lại để duy trì độ chính xác. Bên cạnh đó, cần hiệu chỉnh xác suất dự đoán và cho phép bộ phận Ops chủ động điều chỉnh ngưỡng theo chi phí thực tế; sử dụng thử nghiệm A/B để đánh giá hiệu quả chiến dịch chăm sóc và tối ưu chi phí bỏ sót. Cuối cùng, khai thác đánh giá của khách hàng bằng NLP tiếng Bồ Đào Nha nhằm xác định nguyên nhân dẫn đến các đánh giá tiêu cực, từ đó cải thiện chất lượng vận hành và trải nghiệm khách hàng.
